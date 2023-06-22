@@ -1,0 +1,16 @@
+# base folder for cathegorization (i-select-cat.py)
+D:\DeepLearning\img\training_data\data_train_cat\a
+# leading sub-folder
+D:\DeepLearning\img\training_data\data_train_cat\a\datafl
+# folder for cathegory 1
+D:\DeepLearning\img\training_data\data_train_cat_out\b
+# folder for cathegory 2
+D:\DeepLearning\img\training_data\data_train_cat_out\c
+# folder for cathegory 3
+D:\DeepLearning\img\training_data\data_train_cat_out\d
+# folder for cathegory 4
+D:\DeepLearning\img\training_data\data_train_cat_out\e
+# folder for cathegory 5
+D:\DeepLearning\img\training_data\data_train_cat_out\f
+# end
+

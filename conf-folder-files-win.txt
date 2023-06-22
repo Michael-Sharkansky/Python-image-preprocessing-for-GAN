@@ -1,0 +1,6 @@
+# FROM folder ( i-folder-files.py  )
+D:/DeepLearning/img/training_data/data_train_cat_plus_1/a
+# TO folder 
+D:/DeepLearning/img/training_data/data_train_cat_plus_2/a
+#end
+

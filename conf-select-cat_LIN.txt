@@ -1,0 +1,16 @@
+# base folder for cathegorization (i-select-cat.py)
+/media/ddd/Passport1/DeepLearning/img/dlt2
+# leading sub-folder
+/media/ddd/Passport1/DeepLearning/img/dlt2/datafl
+# folder for cathegory 1
+/media/ddd/Passport1/DeepLearning/img/training_data/data_train_cat2/a
+# folder for cathegory 2
+/media/ddd/Passport1/DeepLearning/img/training_data/data_train_cat2/b
+# folder for cathegory 3
+/media/ddd/Passport1/DeepLearning/img/training_data/data_train_cat2/c
+# folder for cathegory 4
+/media/ddd/Passport1/DeepLearning/img/training_data/data_train_cat2/d
+# folder for cathegory 5
+/media/ddd/Passport1/DeepLearning/img/training_data/data_train_cat2/e
+# end
+

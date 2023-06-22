@@ -1,0 +1,6 @@
+# FROM folder ( i-folder-files.py  )
+/media/dextr/Passport1/DeepLearning/img/training_data/data_train_cat2/a
+# TO folder 
+/media/dextr/Passport1/DeepLearning/img/training_data/data_train_cat/a
+#end
+

@@ -1,0 +1,17 @@
+# Folder to contain Result Folder  - base_dir
+D:\DeepLearning\img\predict_out\appended
+# Folder of Features - leading - results_dir_f      leading
+D:\DeepLearning\img\predict_out\predictfl_last_all
+#  other folders (labes) to append - results_dir_l    #1
+D:\DeepLearning\img\predict_out\predictfl_last_a1
+#  other folders (labes) to append - results_dir_l    #2
+D:\DeepLearning\img\predict_out\predictfl_last_a2
+#  other folders (labes) to append - results_dir_l    #3
+D:\DeepLearning\img\predict_out\predictfl_last_a3
+#  other folders (labes) to append - results_dir_l    #4
+D:\DeepLearning\img\predict_out\predictfl_last_a4
+#  other folders (labes) to append - results_dir_l    #5
+D:\DeepLearning\img\predict_out\predictfl_last_a5
+#  other folders (labes) to append - results_dir_l    #6 real
+D:\DeepLearning\img\predict_data\datafl
+# end

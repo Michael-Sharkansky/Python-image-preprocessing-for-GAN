@@ -1,0 +1,17 @@
+#            i-crop-list-roi.py -c <config-file>        WINDOWS
+# base folder for cropping and cathegorization 
+D:/DeepLearning/img/data_source/data_train11/
+# leading sub-folder (not used here)
+D:/DeepLearning/img/data_source/data_train11/datafl
+# folder for cathegory 1
+D:/DeepLearning/img/training_data/data_train_cat_qt/a
+# folder for cathegory 2
+D:/DeepLearning/img/training_data/data_train_cat_qt/b
+# folder for cathegory 3
+D:/DeepLearning/img/training_data/data_train_cat_qt/c
+# folder for cathegory 4
+D:/DeepLearning/img/training_data/data_train_cat_qt/d
+# folder for cathegory 5
+D:/DeepLearning/img/training_data/data_train_cat_qt/e
+#end
+
