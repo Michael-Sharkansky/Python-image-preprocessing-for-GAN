@@ -8,9 +8,12 @@
 i-crop-batch – run in a batch mode over a folder with images  and create images resized to a definite 
 side size or images re-scaled to percents of the original images. Place the resulting images into another 
 folder.
+
 i-crop-list-roi  – process sequence of images in a folder and create one or two sets of images cut from 
 each original image. It can be used to cut features form images or to cut couples of features and labels 
-from images.  Command line:   -c  <config_file>
+from images.  
+Command line:   -c  <config_file>
+
 i-select  -  for GAN model data: run in a main folder and leave or move files to another folders, I.e. 
 take a file and possibly move all the files with this name from parallel folders to parallel folders in 
 another directory: 
