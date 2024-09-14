@@ -245,11 +245,12 @@ def run_add():
         infile=os.path.basename(filename)
         img1 = cv2.imread(filename)
         file_o = os.path.join(results_dir_out, infile)
+        print(count, " ===", filename)
 
         for results_dir_l in folder_list:
             filename2=os.path.join(results_dir_l, infile)
             if  os.path.exists(filename2):
-                print(count," <<<", infile)
+                print(count," <<<", filename2)
                 img2 = cv2.imread(filename2)
                 # take cropped feature and label files and append them verically of horizontally to make one image with two parts
                 # axis :       # 0- vertically, 1 - horizontally

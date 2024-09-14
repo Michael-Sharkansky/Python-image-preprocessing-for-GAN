@@ -62,15 +62,24 @@ last_img_v=""
 file_f=""
 type_name={ "F" : "Feature", "L" : "Label", "X" : "Full image"}
 done=0
-
+skip_file_name="skip.txt"
+skip_file=None
+skip_dir_log=""
 
 out_dir1=""
 out_dir2=""
 out_dir3=""
 out_dir4=""
 out_dir5=""
+move_ix1=0  # counter for each group into which files were moved
+move_ix2=0
+move_ix3=0
+move_ix4=0
+move_ix5=0
+
 last_dir=""
 config=""
+fit_screen=True
 
 if p_system=="windows" or p_system=="Windows":
     init_move_to_dir="C:/Temp"  # for Move To
@@ -107,8 +116,13 @@ if args["conf"] is not None:    # load config file with folder names
 
 # init tkinter GUI -----------------------------------------------------------------------------------------
 window=Tk() # tkinter start
-window.title("Crop, resize, rotate (v2.1)")
+window.title("Crop, resize, rotate (v2.6)")
 window.geometry('1010x630')  # window size
+
+# screen size
+wscreen = window.winfo_screenwidth()
+hscreen = window.winfo_screenheight()
+print("Screen {} X {}\n".format(wscreen,hscreen ))
 
 label_ifile = Label(window, anchor=E, text="Current file:")
 label_ifile.grid(column=5, row=0)   # widget's location
@@ -128,13 +142,24 @@ entry_skip = Entry(window, width=8)  # skip files  widget
 entry_skip.grid(column=1, row=1)  # location within the window
 entry_skip.insert(0, "0")
 
+label_right = Label(window, anchor=E, text="RButton:")
+label_right.grid(column=3, row=1)   # widget's location
+
+combo_right = Combobox(window, width=12, state='readonly')
+combo_right['values'] = ("Commit/up",  "Re-center/dbl")      # right button function: commin for button uo, re-center for double click
+combo_right.current(1)  # set the selected item
+combo_right.grid(column=4, row=1)
+
 label_done = Label(window, anchor=E, text="0")
 label_done.grid(column=1, row=15)   # widget's location
+
+label_controls = Label(window, anchor=E, text="Options:")
+label_controls.grid(column=6, row=5)   # widget's location
 
 combo_inter = Combobox(window, width=16, state='readonly')
 combo_inter['values'] = ("INTER_LINEAR",  "INTER_AREA",  "INTER_NEAREST", "INTER_CUBIC", "INTER_LANCZOS4", "DEFAULT" )      # resize interpolation
 combo_inter.current(0)  # set the selected item
-combo_inter.grid(column=6, row=3)
+combo_inter.grid(column=6, row=6)
 
 
 chk_resize=BooleanVar()     # resize/scale the cropped image to the preset size (not togeher with tosize)
@@ -175,6 +200,16 @@ chk_fit_big=BooleanVar()     # fit big image to window, good when selectinf feat
 chk_fit_big.set(False)
 chk_box_fit_big = Checkbutton(window, text="Fit big\nimage", var=chk_fit_big)
 chk_box_fit_big.grid(column=2, row=15)
+
+chk_fit_big_auto=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
+chk_fit_big_auto.set(False)
+chk_box_fit_big_auto = Checkbutton(window, text="Fit auto", var=chk_fit_big_auto)
+chk_box_fit_big_auto.grid(column=2, row=16)
+
+entry_thresh = Entry(window, width=3)  # green
+entry_thresh.grid(column=2, row=17)
+entry_thresh.insert(0, str(1.0)) # 1.0 default
+
 
 chk_fit_big_keep=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
 chk_fit_big_keep.set(False)
@@ -221,14 +256,14 @@ entry_save_as = Entry(window, width=8)  # h
 entry_save_as.grid(column=1, row=5)     # 2,5
 entry_save_as.insert(0,  save_as) #put text into the entry widget: .jpg
 
-entry_temp = Entry(window, width=40)  # y
-entry_temp.grid(column=6, row=6)  # 1,10
+entry_temp = Entry(window, width=10)  # y
+entry_temp.grid(column=5, row=6)  # 1,10
 entry_temp.insert(0, init_move_to_dir) #put text into the entry widget: temp folder to move files (Move To)
 
 combo_move_all = Combobox(window, width=7, state='readonly')
 combo_move_all['values'] = ("Sniplets",  "Source",   "All" )      # what to move: the image, the small picture or all
 combo_move_all.current(0)  # set the selected item
-combo_move_all.grid(column=4, row=6)   # 2,10
+combo_move_all.grid(column=3, row=6)   # 2,10
 
 # rotation outliers fill
 combo_outlier = Combobox(window, width=9, state='readonly')
@@ -274,6 +309,11 @@ combo_order.grid(column=6, row=16)
 label_last_categ = Label(window, anchor=E, text=">")    # the last category that was selected
 label_last_categ.grid(column=0, row=17)   
 
+chk_inplace=BooleanVar()   # if true, if the entire image was taken then it should be stored in place after rotation
+chk_inplace.set(False)
+chk_box_chk_inplace = Checkbutton(window, text="In-place", var=chk_inplace)
+chk_box_chk_inplace.grid(column=3, row=17)
+
 chk_fixed_folder=BooleanVar()   # if true, use fixed subfolder names: dataff, datall, datafl, otherwise use foder names with time stamps
 chk_fixed_folder.set(True)
 chk_box_fixed_folder = Checkbutton(window, text="Fixed sub-folder names", var=chk_fixed_folder)
@@ -303,10 +343,30 @@ def beep():
 # whether cropping is being performed or not
 refPt = []
 verPt = []
+cenPt = []
 cropping = False
 align = False
 abandon=False
 proceed=False
+center=False
+
+def CountFiles(dir_path):
+    cnt=len([entry for entry in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, entry))])
+    return cnt
+
+def IsRButtonCommit():  # Right button function: True for Commin, False for recenter
+    selected = combo_right.get()     # right button function: commit for button up, re-center for double click
+    if selected == "Commit/up":
+        return True
+    else:
+        return False    # Re-Center
+def isFitScreen(img):
+    global fit_scrren, wscreen, hscreen
+    threshold = float(entry_thresh.get())
+    if (float(img.shape[1]) > float(wscreen)*threshold or float(img.shape[0]) > float(hscreen)*threshold):
+        return False
+    else:
+        return True
 
 def get_interplation():
     #"INTER_LINEAR", "INTER_NEAREST", "INTER_AREA", "INTER_CUBIC", "INTER_LANCZOS4"
@@ -336,7 +396,7 @@ def get_interplation():
 # see https://www.pyimagesearch.com/2015/03/09/capturing-mouse-click-events-with-python-and-opencv/
 def  click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
-    global refPt, cropping, img, abandon, title, verPt, align, proceed
+    global refPt, cropping, img, abandon, title, verPt, align, proceed, cenPt, center
 
     # With the middle button, draw a line that will become the vertical axis of the image after the rotation
     if event == cv2.EVENT_MBUTTONDOWN:  #start assumed vertical axis,  to rotate the image, click middle button
@@ -366,11 +426,18 @@ def  click_and_crop(event, x, y, flags, param):
 
         # draw a rectangle around the region of interest and write its size over the image
         text="{:03d}:{:03d}".format(refPt[1][0]-refPt[0][0], refPt[1][1]-refPt[0][1] )
-        cv2.putText(img,text, (10,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 1)
+        cv2.putText(img,text, (10,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 1)   # draw the ROI size in upper left coner in red
         cv2.rectangle(img, refPt[0], refPt[1], (0, 255, 0), 2)  #green line of width 2
         cv2.imshow(title, img)
-    if event == cv2.EVENT_RBUTTONUP:
+    if event == cv2.EVENT_RBUTTONUP and IsRButtonCommit():  # commint the action
         proceed = True
+        center = False
+        cenPt = []
+    if event == cv2.EVENT_RBUTTONDBLCLK and not IsRButtonCommit():       #re-center the image
+        cenPt = [(x, y)]
+        cv2.drawMarker(img, cenPt[0], (255, 120, 255))  # add small magenta cross for the starting point of ROI (BGR)
+        center = True
+        proceed = False
     #if event == cv2.EVENT_RBUTTONDBLCLK:        # EVENT_RBUTTONDBLCLK   EVENT_MBUTTONDBLCLK  EVENT_LBUTTONDBLCLK
     #    abandon=True
 
@@ -422,6 +489,37 @@ def rotateImage(image, angle):  #rotate image to an angle (positive - counterclo
                             )
     return result
 
+def flipImage(image, axis):  #flip image around axis 0 - x , 1 - y,  -1 - x and y
+    result = cv2.flip(image, axis)
+    return result
+
+def run_flip_f():
+    global last_img_f , last_img_v
+    last_img_f=flipImage(last_img_f, 1)
+
+def run_flip_v():
+    global last_img_f , last_img_v
+    last_img_v=flipImage(last_img_v, 1)
+
+def write_skip_file(index):
+    global skip_file
+    skip_file = open(skip_file_name, 'w')
+    skip_file.write("{}\n".format(index))
+    skip_file.close()
+
+def read_skip_file():
+    global skip_file, skip_file_name, current_file_index
+    if os.path.exists(skip_file_name):
+        skip_file = open(skip_file_name, 'rt')
+        line = skip_file.readline()[:-1]
+        skip_file.close()
+        entry_skip.delete(0, END)
+        entry_skip.insert(0, line)
+        #current_file_index=int(line)   # do not update automatically, user should press Skip button
+        print("Skip file loaded. Press SKIP button to continue from the image #", line, flush=True)
+    else:
+        print("Skip file not found!", flush=True)
+
 
 #reopen the log to commint it.
 def reopen_log():
@@ -446,7 +544,7 @@ def prepare_append2(file1, file2, the_dir, base_file, counter, disting):
 
 def run_loading() :
     global results_dir_f, results_dir_l, results_dir_fl,  files, base_dir
-    global log_file, log_file_name, result_dirs
+    global log_file, log_file_name, result_dirs, skip_dir_log, skip_file_name
     stamp_h = "{:02d}{:02d}".format(datetime.now().hour, datetime.now().minute)
     stamp_d = "{:02d}{:02d}{:02d}_".format(datetime.now().year %100, datetime.now().month, datetime.now().day)+stamp_h
  
@@ -473,6 +571,7 @@ def run_loading() :
         total_files_read = sum([len(files) for r, d, files in os.walk(base_dir)])
         text="{} files in {}".format(total_files_read,base_dir)
         label_state.configure(text=text)  # show on the GUI screen
+
         # r=root, d=directories, f = files
         for r, d, f in os.walk(base_dir):
             for file in f:
@@ -502,11 +601,18 @@ def run_loading() :
         if not os.path.exists(results_dir_fl):
             os.mkdir(results_dir_fl)
 
-
+    # load file with data of q-ty of processed files: _skip\skip.txt
+    skip_dir_log=os.path.join(base_dir,"_skip")
+    if not os.path.exists(skip_dir_log):
+        os.mkdir(skip_dir_log)
+    skip_file_name=os.path.join(skip_dir_log,skip_file_name)
+    print("Skip file: ", skip_file_name, flush=True)
+    read_skip_file()
+    #end run_loading
 #=========================================================================================================
 
 def equ_key(key):
-    if key=="z" or key=="x" or key=="c" or key=="v" or key=="b":  # like 1,2,3,4,5 in lowest row
+    if key==ord("z") or key==ord("x") or key==ord("c") or key==ord("v") or key==ord("b"):  # like 1,2,3,4,5 in lowest row
         return True
     else:
         return False
@@ -541,6 +647,9 @@ def run_rot(last_img):
 #=======================================================================================================
 
 def run_add_f():
+    if chk_inplace.get() == True:  # if the entire image was taken, this is disabled
+        print("Add F is disabled for in-place save!\n")
+        return
     run_add("f")
     global done
     done=done+1
@@ -549,6 +658,9 @@ def run_add_f():
 
 
 def run_add_v():
+    if chk_inplace.get() == True:  # if the entire image was taken, this is disabled
+        print("Add L is disabled for in-place save!\n")
+        return
     run_add("l")
 
 def run_add_full():
@@ -563,12 +675,13 @@ def run_add_full():
 def run_add(type):
     global inner_counter
     global final_size
-    global refPt, cropping, img,  verPt, align, abandon, proceed
+    global refPt, cropping, img,  verPt, align, abandon, proceed, cenPt, center
     global last_img_f , last_img_v, order
     global title
     global save_as
 
     title="Select ("+type_name[type.upper()]+") area."
+    t_size=""
 
     if chk_feature.get() :
         if (type == 'f' and order%2==1) or  (type != 'f' and order%2==0) :
@@ -594,6 +707,7 @@ def run_add(type):
 
     filename=entry_current.get()  #get input file from gui
     outfile=os.path.basename(filename)
+    in_path=os.path.dirname(filename)
 
     root, ext = os.path.splitext(outfile)
     root = root.replace('.', '_', 4)  # remove any dot from the middle of the filename
@@ -604,11 +718,13 @@ def run_add(type):
             print("Select file, press Next!!!!!!")
     # crop
     img = cv2.imread(filename)
+    do_adjust = not isFitScreen(img)
 
     if chk_preview.get() == True:    #use internal ROI selection over the image
         #select ROI
         clone = img.copy()
-        if chk_fit_big.get():
+        if (chk_fit_big.get() or (chk_fit_big_auto.get() and do_adjust)):
+            print("Adjust to screen {} X {}\n".format(img.shape[1], img.shape[0]))
             cv2.namedWindow(title,cv2.WINDOW_NORMAL) #,cv2.WINDOW_KEEPRATIO) #fit to window size
         else:
             cv2.namedWindow(title)  # show as is, even when big
@@ -618,16 +734,18 @@ def run_add(type):
             # display the image and wait for a keypress
             cv2.imshow(title, img)
             key = cv2.waitKey(1) & 0xFF     # wait for 1  millisec and exit: key polling
-            # print(key)
+            #print(key)
             # if the 'r' or Esc key is pressed, reset the cropping region
-            if key == ord("r") or key == 27 or abandon:
+            if key == ord("r") or key == 27 or abandon:  #esc key
                 img = clone.copy()
                 refPt = []
                 verPt = []
+                cenPt = []
                 abandon=False
+                center=False
 
             # if the 'g' or space key is pressed, break from the loop, accept the action
-            elif key == ord("g") or key == ord(" ")  or (key >= ord("1") and key <= ord("9"))or equ_key(key) or proceed:
+            elif key == ord("g") or key == ord(" ") or (key >= ord("1") and key <= ord("9"))or equ_key(key) or proceed:
                 proceed = False
                 break
 
@@ -672,10 +790,21 @@ def run_add(type):
             if y+h>=img.shape[1]:
                 y=img.shape[1]-h
 
+        if center:  # re-center the image with the right button double click
+            x = cenPt[0][1] - int(w/2)      # 0'th item, x is index 1
+            y = cenPt[0][0] - int(h/2)      # 0'th item, y is index 0
+            if x<0:
+                x=0
+            if y<0:
+                y=0
+            cenPt=[]
+            center=False
+
         entry_x.delete(0, END); entry_x.insert(0, str(y))  # set for title bar of IrfanView region selection (x, y; w X h)
         entry_y.delete(0, END); entry_y.insert(0, str(x))
         entry_w.delete(0, END); entry_w.insert(0, str(h))
         entry_h.delete(0, END); entry_h.insert(0, str(w))
+        t_size=" "+str(w)+":"+str(h)    # keep the final size of the cropped image
         title="??"
         #end of chk_preview.get() == True  ------------------------------------------
 
@@ -704,8 +833,12 @@ def run_add(type):
         i256=crop_img.copy()
 
 
-    if type == 'f' or type == 'x':
+    if type == 'f':
+        the_dir = results_dir_f
+    elif type == 'x':
         the_dir=results_dir_f
+        if chk_inplace.get() == True:   # if the entire image was taken and should be stored in place after rotation
+            the_dir=in_path
     else:
         the_dir=results_dir_l     #select output folder by the image type
 
@@ -744,11 +877,12 @@ def run_add(type):
     else:
         timeout = 0
 
-    cv2.imshow(type.upper(), i256)          # show the cropped image,
-    key= cv2.waitKey(timeout) & 0xFF           # wait for any key pressed for 7 seconds and then exit
+    cv2.imshow(type.upper()+t_size, i256)           # show the cropped image, with its size
+    key= cv2.waitKey(timeout) & 0xFF                # wait for any key pressed for 7 seconds and then exit
     cv2.destroyAllWindows()
     log_file.write("\t\t{}\n".format(outfile_f))
-    label_state.configure(text="Added: "+outfile_f)  # show on the GUI screen
+    root, ext = os.path.splitext(os.path.basename(outfile_f))
+    label_state.configure(text="Added: "+root)  # show on the GUI screen
 
     if ( not chk_resize.get() and not chk_tosize.get()):
         chk_append2.set(False)
@@ -815,11 +949,13 @@ def run_next():
         if current_file_index % 50 == 0:
                 beep()
         inner_counter=0
-        text = "#{}: {}".format(current_file_index,os.path.basename(current_file))
+        root, ext = os.path.splitext(os.path.basename(current_file))
+        text = "#{}: {}".format(current_file_index, root)   # display only the filename without path and without extension
         label_state.configure(text=text)  # show on the GUI screen
         entry_skip.delete(0, END)
         entry_skip.insert(0, str(current_file_index))
         label_last.configure(text="F")  # show next action
+        write_skip_file(current_file_index)
 
         log_file.write("{}\n".format(text))
         if chk_irfan.get() == True: # use ROI selection in IrfanView
@@ -834,10 +970,12 @@ def run_next():
                 entry_x.delete(0, END);   entry_x.insert(0, str(img.shape[1]))  # image size (x, y; w X h)
                 entry_y.delete(0, END);   entry_y.insert(0, str(img.shape[0]))
                 entry_w.delete(0, END);   entry_w.insert(0, str(0));  entry_h.delete(0, END);  entry_h.insert(0, str(0))  # h, w
+                do_adjust = not isFitScreen(img)
 
                 bar_pos=0
                 title="The current picture"
-                if chk_fit_big.get():
+                if (chk_fit_big.get() or (chk_fit_big_auto.get() and do_adjust)):
+                    print("Adjust to screen {} X {}\n".format(img.shape[1], img.shape[0]))
                     cv2.namedWindow(title, cv2.WINDOW_NORMAL)  # ,cv2.WINDOW_KEEPRATIO) #fit to window size
                 else:
                     cv2.namedWindow(title)  # show as is, even when big
@@ -855,12 +993,15 @@ def run_back():
     if current_file_index>0:
         current_file_index = current_file_index - 1
         print("Current index back: {}\n".format(current_file_index))
+        write_skip_file(current_file_index)
     # run_back
 
 def run_skip():
     global current_file_index
     current_file_index=current_file_index+int(entry_skip.get())  #
+    write_skip_file(current_file_index)
     print("Current index skip: {}\n".format(current_file_index))
+
 
 def run_delete_last():
     global last_img_f , last_img_v
@@ -881,8 +1022,8 @@ def run_delete_last():
 
 #set folder to move the current image file to (dft C:/Temp) with all its derivatives
 def init_move():
+    global init_move_to_dir
     temp_dir = filedialog.askdirectory(title="Parent folder to move to...",initialdir=init_move_to_dir)
-    temp_dir=entry_temp.get() 
     entry_temp.delete(0, END)
     entry_temp.insert(0, temp_dir)
 
@@ -907,7 +1048,7 @@ def run_move():
 
     if selected == "Sniplets" or selected == "All":
             name_list=os.path.splitext(os.path.basename(filename))
-            for suffix in ["ff","fl","ll"]: # for each of tese folders
+            for suffix in ["ff","fl","ll"]: # for each of these folders
                 a_results_dir_1 = os.path.join(base_dir, result_dirs + suffix)
                 a_results_dir_2 = os.path.join(temp_dir, result_dirs + suffix)
                 if not os.path.exists(a_results_dir_2):
@@ -957,12 +1098,15 @@ def run_move_i(out_dir_i):
 
 
 def run_move1():
-    global current_file_index,current_file,   last_dir, out_dir1
+    global current_file_index,current_file,   last_dir, out_dir1, move_ix1
     run_move_i(out_dir1)
     label_last_categ.configure(text="1")
-    
+    move_ix1=move_ix1+1
+    entry_ix_1.configure(text=str(move_ix1))
+
+
 def run_to1():                              # create set of folders for a cathegory
-    global current_file_index,current_file,  out_dir1
+    global current_file_index,current_file,  out_dir1, move_ix1
     if config=="":
         out_dir1 = filedialog.askdirectory(title="Parent folder to contain Output Folders /1")
     if out_dir1=="":
@@ -978,15 +1122,19 @@ def run_to1():                              # create set of folders for a catheg
             if not os.path.exists(results_dir_f):
                 os.mkdir(results_dir_f)
                 print("Created: ",results_dir_f)
+            move_ix1=CountFiles(results_dir_f)  # count how many files there already are
+            entry_ix_1.configure(text=str(move_ix1))
 
 
 def run_move2():
-    global current_file_index,current_file, last_dir, out_dir2
+    global current_file_index,current_file, last_dir, out_dir2, move_ix2
     run_move_i(out_dir2)
     label_last_categ.configure(text="2")
+    move_ix2=move_ix2+1
+    entry_ix_2.configure(text=str(move_ix2))
 
 def run_to2():
-    global current_file_index,current_file,  out_dir2
+    global current_file_index,current_file,  out_dir2, move_ix2
     if config=="":
         out_dir2 = filedialog.askdirectory(title="Parent folder to contain Output Folders /2")
     if out_dir2=="":
@@ -1002,15 +1150,19 @@ def run_to2():
             if not os.path.exists(results_dir_f):
                 os.mkdir(results_dir_f)
                 print("Created: ",results_dir_f)
+            move_ix2=CountFiles(results_dir_f)
+            entry_ix_2.configure(text=str(move_ix2))
 
 
 def run_move3():
-    global current_file_index,current_file,  last_dir, out_dir3
+    global current_file_index,current_file,  last_dir, out_dir3, move_ix3
     run_move_i(out_dir3)
     label_last_categ.configure(text="3")
+    move_ix3=move_ix3+1
+    entry_ix_3.configure(text=str(move_ix3))
 
 def run_to3():
-    global current_file_index,current_file,  out_dir3
+    global current_file_index,current_file,  out_dir3, move_ix3
     if config=="":
         out_dir3 = filedialog.askdirectory(title="Parent folder to contain Output Folders /3")
     if out_dir3=="":
@@ -1026,15 +1178,19 @@ def run_to3():
             if not os.path.exists(results_dir_f):
                 os.mkdir(results_dir_f)
                 print("Created: ",results_dir_f)
+            move_ix3=CountFiles(results_dir_f)
+            entry_ix_3.configure(text=str(move_ix3))
 
 
 def run_move4():
-    global current_file_index,current_file,  last_dir, out_dir4
+    global current_file_index,current_file,  last_dir, out_dir4, move_ix4
     run_move_i(out_dir4)
     label_last_categ.configure(text="4")
+    move_ix4=move_ix4+1
+    entry_ix_4.configure(text=str(move_ix4))
 
 def run_to4():
-    global current_file_index,current_file, out_dir4
+    global current_file_index,current_file, out_dir4, move_ix4
     if config=="":
         out_dir4 = filedialog.askdirectory(title="Parent folder to contain Output Folders /4")
     if out_dir4=="":
@@ -1050,14 +1206,18 @@ def run_to4():
             if not os.path.exists(results_dir_f):
                 os.mkdir(results_dir_f)
                 print("Created: ",results_dir_f)
+            move_ix4=CountFiles(results_dir_f)
+            entry_ix_4.configure(text=str(move_ix4))
 
 def run_move5():
-    global current_file_index,current_file,  last_dir, out_dir5
+    global current_file_index,current_file,  last_dir, out_dir5, move_ix5
     run_move_i(out_dir5)
     label_last_categ.configure(text="5")
+    move_ix5=move_ix5+1
+    entry_ix_5.configure(text=str(move_ix5))
 
 def run_to5():
-    global current_file_index,current_file, out_dir5
+    global current_file_index,current_file, out_dir5, move_ix5
     if config=="":
         out_dir5 = filedialog.askdirectory(title="Parent folder to contain Output Folders /5")
     if out_dir5=="":
@@ -1073,6 +1233,8 @@ def run_to5():
             if not os.path.exists(results_dir_f):
                 os.mkdir(results_dir_f)
                 print("Created: ",results_dir_f)
+            move_ix5=CountFiles(results_dir_f)
+            entry_ix_5.configure(text=str(move_ix5))
 
 
 def run_ctrl_z():   # move the files back to the original folders
@@ -1124,26 +1286,32 @@ button_init.grid(column=0, row=9)   # 6,2
 label_1 = Label(window, anchor=E, text="Crop:")
 label_1.grid(column=0, row=11)   # widget's location
 
-button_init1 = Button(window, text=" Add F  ", bg="orange", fg="blue", command=run_add_f)
-button_init1.grid(column=1, row=12)
+button_addf = Button(window, text=" Add F  ", bg="orange", fg="blue", command=run_add_f)
+button_addf.grid(column=1, row=12)
 
-button_init1a = Button(window, text=" Rot F  ", bg="orange", fg="blue", command=run_rot_f)
-button_init1a.grid(column=3, row=12)
+button_rotf = Button(window, text=" Rot F  ", bg="orange", fg="blue", command=run_rot_f)
+button_rotf.grid(column=3, row=12)
 
-button_init2 = Button(window, text=" Add L  ", bg="orange", fg="green", command=run_add_v)
-button_init2.grid(column=1, row=14)
+button_addl = Button(window, text=" Add L  ", bg="orange", fg="green", command=run_add_v)
+button_addl.grid(column=1, row=14)
 
-button_init2a = Button(window, text=" Rot L  ", bg="orange", fg="green", command=run_rot_v)
-button_init2a.grid(column=3, row=14)
+button_rotl = Button(window, text=" Rot L  ", bg="orange", fg="green", command=run_rot_v)
+button_rotl.grid(column=3, row=14)
+
+button_rotf = Button(window, text=" Flip F Y", bg="orange", fg="blue", command=run_flip_f)
+button_rotf.grid(column=5, row=12)
+
+button_rotl = Button(window, text=" Flip L Y", bg="orange", fg="green", command=run_flip_v)
+button_rotl.grid(column=5, row=14)
 
 button_again = Button(window, text="Again", bg="orange", fg="red", command=run_again)
 button_again.grid(column=4, row=15)
 
-button_init4 = Button(window, text="One Back", bg="orange", fg="blue", command=run_back)
-button_init4.grid(column=0, row=16)
+button_back = Button(window, text="One Back", bg="orange", fg="blue", command=run_back)
+button_back.grid(column=0, row=16)
 
-button_init3 = Button(window, text="  Next   ", bg="orange", fg="blue", command=run_next)
-button_init3.grid(column=1, row=16)
+button_next = Button(window, text="  Next   ", bg="orange", fg="blue", command=run_next)
+button_next.grid(column=1, row=16)
 
 button_full= Button(window, text="Add Full", bg="yellow", fg="green", command=run_add_full)
 button_full.grid(column=3, row=16)
@@ -1154,11 +1322,11 @@ button_adel.grid(column=4, row=16)
 button_init5 = Button(window, text="Skip", bg="orange", fg="blue", command=run_skip)
 button_init5.grid(column=0, row=1)
 
-button_init6 = Button(window, text="Move to", bg="orange", fg="blue", command=run_move)
-button_init6.grid(column=5, row=6)  # 0,10
+button_init6 = Button(window, text="Move to ->", bg="orange", fg="blue", command=run_move)
+button_init6.grid(column=4, row=6)  # 0,10
 
 button_init7 = Button(window, text="Move to\ninit", bg="orange", fg="blue", command=init_move)
-button_init7.grid(column=3, row=6) # 4,10
+button_init7.grid(column=2, row=6) # 4,10
 
 
 # buttons to move to categories
@@ -1169,26 +1337,41 @@ button_move_1 = Button(window, text="Move 1", bg="orange", fg="green", command=r
 button_move_1.grid(column=1, row=18)
 button_init_1 = Button(window, text="Init 1", bg="orange", fg="blue", command=run_to1)  # initialize this output folder
 button_init_1.grid(column=2, row=18)
+entry_ix_1 = Label(window, width=8)  # count moves to here
+entry_ix_1.grid(column=3, row=18)  # location within the window
+entry_ix_1.configure(text="0")
 
 button_move_2 = Button(window, text="Move 2", bg="orange", fg="green", command=run_move2)
 button_move_2.grid(column=1, row=19)
 button_init_2 = Button(window, text="Init 2", bg="orange", fg="blue", command=run_to2)
 button_init_2.grid(column=2, row=19)
+entry_ix_2 = Label(window, width=8)  # count moves to here
+entry_ix_2.grid(column=3, row=19)  # location within the window
+entry_ix_2.configure(text="0")
 
 button_move_3 = Button(window, text="Move 3", bg="orange", fg="green", command=run_move3)
 button_move_3.grid(column=1, row=20)
 button_init_3 = Button(window, text="Init 3", bg="orange", fg="blue", command=run_to3)
 button_init_3.grid(column=2, row=20)
+entry_ix_3 = Label(window, width=8)  # count moves to here
+entry_ix_3.grid(column=3, row=20)  # location within the window
+entry_ix_3.configure(text="0")
 
 button_move_4 = Button(window, text="Move 4", bg="orange", fg="green", command=run_move4)
 button_move_4.grid(column=1, row=21)
 button_init_4 = Button(window, text="Init 4", bg="orange", fg="blue", command=run_to4)
 button_init_4.grid(column=2, row=21)
+entry_ix_4 = Label(window, width=8)  # count moves to here
+entry_ix_4.grid(column=3, row=21)  # location within the window
+entry_ix_4.configure(text="0")
 
 button_move_5 = Button(window, text="Move 5", bg="orange", fg="green", command=run_move5)
 button_move_5.grid(column=1, row=22)
 button_init_5 = Button(window, text="Init 5", bg="orange", fg="blue", command=run_to5)
 button_init_5.grid(column=2, row=22)
+entry_ix_5 = Label(window, width=8)  # count moves to here
+entry_ix_5.grid(column=3, row=22)  # location within the window
+entry_ix_5.configure(text="0")
 
 button_undo = Button(window, text="UnMove Last", bg="orange", fg="red", command=run_ctrl_z)
 button_undo.grid(column=4, row=22)
