@@ -57,7 +57,7 @@ counter=0
 
 # init tkinter GUI -----------------------------------------------------------------------------------------
 window=Tk() # tkinter start
-window.title("Append couples or n-tuples of consecutive image files in the folder into one image.")
+window.title("Append couples or n-tuples of consecutive image files in the folder into one image. 1.21")
 window.geometry('950x250')  # window size
 # screen size
 wss  =window.winfo_screenwidth()
@@ -66,11 +66,6 @@ chk_debug=BooleanVar()     # fit big image to window, good when selectinf featur
 chk_debug.set(False)
 chk_box_debug = Checkbutton(window, text="Show images", var=chk_debug)
 chk_box_debug.grid(column=0, row=0)
-
-chk_resize=BooleanVar()     # resize/scale the cropped image to the preset size (not togeher with tosize)
-chk_resize.set(False)
-chk_box_resize = Checkbutton(window, text="Auto Resize", var=chk_resize)
-chk_box_resize.grid(column=2, row=0)
 
 label_10 = Label(window, anchor=E, text="Q-ty files to append:")
 label_10.grid(column=0, row=3)   #
@@ -81,6 +76,24 @@ entry_n.insert(0, "2")
 
 label_state = Label(window, text="Waiting for init.")
 label_state.grid(column=6, row=3)
+
+entry_ext = Entry(window, width=8)  # addition to the file name for this set of files
+entry_ext.grid(column=0, row=4)  # location within the window
+entry_ext.insert(0, "_d")
+chk_resize=BooleanVar()     # resize/scale the image to the preset size (not togeher with tosize)
+chk_resize.set(True)
+chk_box_resize = Checkbutton(window, text="Auto Resize", var=chk_resize)
+chk_box_resize.grid(column=2, row=4)
+
+chk_rotate=BooleanVar()     # and rotate the  image
+chk_rotate.set(True)
+chk_box_rotate = Checkbutton(window, text="Auto rotate", var=chk_rotate)
+chk_box_rotate.grid(column=3, row=4)
+
+chk_long=BooleanVar()     #  # if w>h (horizontal long) then rotate to vertical long
+chk_long.set(True)
+chk_box_long = Checkbutton(window, text="Long->Tall", var=chk_long)
+chk_box_long.grid(column=4, row=4)
 
 label_state1 = Label(window, text=" ")  # dummy to keep the line
 label_state1.grid(column=6, row=4)
@@ -103,9 +116,6 @@ entry_scale.insert(0, "1.0")
 label_1 = Label(window, anchor=E, text="Action:")
 label_1.grid(column=0, row=11)   # widget's location
 
-entry_ext = Entry(window, width=8)  # addition to the file name for this set of files
-entry_ext.grid(column=0, row=4)  # location within the window
-entry_ext.insert(0, "_d")
 
 
 #--------------------------------------------------------------------------------------------
@@ -118,6 +128,7 @@ cropping = False
 close_window=False
 
 def scale_image(img):	# scale the image for output
+    global scale_factor
     if scale_factor!=1.0:
         width=int(img.shape[1] * scale_factor)
         height=int(img.shape[0] * scale_factor)
@@ -127,6 +138,10 @@ def scale_image(img):	# scale the image for output
 def scale_image2(img1, img2):	# scale the image 1 to the size of image2
     width=int(img2.shape[1] )
     height=int(img2.shape[0] )
+    img1=cv2.resize(img1, (width, height), interpolation = cv2.INTER_LINEAR) # dft: INTER_LINEAR . INTER_NEAREST  INTER_CUBIC  INTER_LANCZOS4
+    return img1
+
+def scale_image_size(img1, width, height):	# scale the image 1 to the size in integers
     img1=cv2.resize(img1, (width, height), interpolation = cv2.INTER_LINEAR) # dft: INTER_LINEAR . INTER_NEAREST  INTER_CUBIC  INTER_LANCZOS4
     return img1
 
@@ -193,6 +208,21 @@ def prepare_append2(file1, file2, file_out, axis):
     fix=""
     #shape  [1]    [0]      [2]
     #      width  heigth   colors
+    # axis:  0- vertically, 1 - horizontally
+
+    if axis == 1:   # horizontally
+        if img1.shape[0] < img2.shape[0]:   # swap to select the highest to be the 1st ? is it good?
+            imgt=img1
+            img1=img2
+            img2=imgt
+            print("images were swapped")
+    if chk_long.get():    # if w>h (horintal long) then rotate to vertical long
+        if img1.shape[1]> wss/2 and img1.shape[1] > img1.shape[0]:      # width > heigth
+            print("Rotate long to tall", file1)
+            img1 = np.swapaxes(img1, 0, 1)  # swap axes 0 and 1 of the shape[], i.e. rotate 90 degrees
+        if img2.shape[1]> wss/2 and img2.shape[1] > img2.shape[0]:      # width > heigth
+            print("Rotate long to tall", file2)
+            img2 = np.swapaxes(img2, 0, 1)  # swap axes 0 and 1 of the shape[], i.e. rotate 90 degrees
 
     if axis == -1:  # automatic concatenate along the long side of the image
         if img1.shape[0] >= img1.shape[1]:      # heigth > width
@@ -206,22 +236,52 @@ def prepare_append2(file1, file2, file_out, axis):
             axis = 1
 
     if chk_resize.get():    #correct sizes that do not fit
-        if img1.shape[0] == img2.shape[1] or img1.shape[1] == img2.shape[0]:  # the axises are swapped in images like 500X1000 and 1000X500
-            print("Rotate ", file1)
-            img2=np.swapaxes(img2,0,1)  # swap axes 0 and 1 of the shape[], i.e. rotate 90 degrees
-            fix="_r"
-        elif ((img1.shape[0] == img2.shape[0] and img1.shape[1]!=img2.shape[1] and axis==0 ) or # one axis is different like 1000X1000 and 1000X1024
-            (img1.shape[0]!=img2.shape[0] and img1.shape[1]==img2.shape[1] and axis==1)):
-            print("Resize ", file1)
-            fix="_s"
-            if img1.shape[0]*img1.shape[1] < img2.shape[0]*img2.shape[1]:
-                img1=scale_image2(img1,img2)
+        if ( img1.shape[0] == img2.shape[1] and img1.shape[1] == img2.shape[0]) and chk_rotate.get() :  # the axises are swapped in images like 500X1000 and 1000X500
+            if (img1.shape[0]>img1.shape[1]):
+                print("Rotate ", file2)
+                img2=np.swapaxes(img2,0,1)  # swap axes 0 and 1 of the shape[], i.e. rotate 90 degrees
             else:
+                print("Rotate ", file1)
+                img1 = np.swapaxes(img1, 0, 1)  # swap axes 0 and 1 of the shape[], i.e. rotate 90 degrees
+            fix="_r"
+            print("Rotated ", img1.shape[1], img1.shape[0],  img2.shape[1], img2.shape[0])
+        elif (  (img1.shape[0] == img2.shape[0] and img1.shape[1]!=img2.shape[1] and axis==0 ) or # one axis is different like 1000X1000 and 1000X1024
+                (img1.shape[0] != img2.shape[0] and img1.shape[1]==img2.shape[1] and axis==1 ) ) :
+            fix="_s"
+            if img1.shape[0]*img1.shape[1] < img2.shape[0]*img2.shape[1]:       # resize to the one of the largest area
+                print("Resize 1 ", file1)
+                img1 = scale_image2(img1, img2)     # scale the image 1 to the size of image2
+            else:
+                print("Resize 2 ", file2)
                 img2 = scale_image2(img2, img1)
         elif (img1.shape[0] != img2.shape[0] and img1.shape[1]!=img2.shape[1] ):  # both axis are different like 1200X1000 and 1100X1024
-            print("Reformat ", file1)
-            img1=scale_image2(img1, img2)
+            #print("o ", img1.shape[1], img1.shape[0],  img2.shape[1], img2.shape[0])
+            width1  = float(img1.shape[1])
+            height1 = float(img1.shape[0])
+            width2  = float(img2.shape[1])
+            height2 = float(img2.shape[0])
+            if axis == 1:  # append horizontally
+                if (height2 > height1): # take the largest height
+                    ratio=height2 / height1
+                    img1=scale_image_size(img1, int(round(width1*ratio)), int(height2))  # resize the other image to the largest height and to proportional width
+                    print("Reformat 1/H ", file1)
+                else:
+                    ratio=height1 / height2
+                    img2=scale_image_size(img2, int(round(width2*ratio)), int(height1))
+                    print("Reformat 2/H ", file2)
+            else:  # append vertically
+                if (width2 > width1):
+                    ratio = width2 / width1
+                    img1 = scale_image_size(img1, int(width2), int(round(height1 * ratio)))
+                    print("Reformat 1/V ", file1)
+                else:
+                    ratio = width1 / width2
+                    img2 = scale_image_size(img2, int(width1), int(round(height2 * ratio)))
+                    print("Reformat 2/V ", file2)
+            #print("r ", img1.shape[1], img1.shape[0],  img2.shape[1], img2.shape[0])
             fix="_f"
+        else:
+            print("passed as is ", img1.shape[1], img1.shape[0],  img2.shape[1], img2.shape[0])
 
     # prepare output file name
     infile = os.path.basename(file2)
@@ -244,8 +304,9 @@ def prepare_append_list(the_list, file_out, axis):
     # axis :       # 0- vertically, 1 - horizontally
     #shape  [1]    [0]      [2]
     #      width  heigth   colors
-
     fcount=0
+    vis=None
+    file_out_ = os.path.join(results_dir_out,  "____.jpg")
     for a_file in the_list:
         if fcount==0:
             img1 = cv2.imread(a_file)
@@ -255,8 +316,10 @@ def prepare_append_list(the_list, file_out, axis):
             root, ext = os.path.splitext(infile)
             root = root.replace('.', '_', 4)  # remove any dot from the filename
             file_out_ = os.path.join(results_dir_out, root + entry_ext.get() + ".jpg")
+            #print("1st ", img1.shape[1], img1.shape[0])
         else:
             img2 = cv2.imread(a_file)
+            # print("next ", img2.shape[1], img2.shape[0])
             vis = np.concatenate((vis, img2), axis=axis)   # 0- vertically, 1 - horizontally
         print(fcount," ", a_file)
         fcount=fcount+1
@@ -269,10 +332,8 @@ def prepare_append_list(the_list, file_out, axis):
 def run_loading() :
     global results_dir_f, files, base_dir
     global log_file, log_file_name
-    global results_dir_out, scale_factor
+    global results_dir_out
     
-    scale_factor=float(entry_scale.get()) 
-
     results_dir_f = filedialog.askdirectory(title="Folder of the input Images")
     base_dir = filedialog.askdirectory(title="Folder to contain Result Folder")
     if base_dir=="":    # if Cancel is pressed, set input folder as the default
@@ -293,15 +354,23 @@ def run_loading() :
 
 def run_add():
     global inner_counter
-    global final_size
+    global final_size, scale_factor
     global refPt, cropping, img, close_window
     global last_img_f , last_img_v
     global results_dir_out, base_dir
     count=0
     qty_n=int(entry_n.get())  # couple or n-tuple
 
+    if (qty_n > 2 and chk_resize.get()):
+        label_state.configure(text="Cannot Auto Resize for q-ty to append >2")  # show on the GUI screen
+        return
+    if (qty_n > 2):
+        print("All the files in a {}-tuple must have the same size!\n".format(qty_n))
+
+    scale_factor=float(entry_scale.get())
 
     axis=0
+    type=""     # express settings in the out folder name:
     selected = combo_order.get()
     if selected == "Vertically":
         axis = 0  # 0- vertically, 1 - horizontally
@@ -315,6 +384,14 @@ def run_add():
     if selected == "Short":
         axis = -2  # 0- vertically, 1 - horizontally, here - along the short dimension
         type="s"
+    if chk_resize.get():    # auto resize
+        type=type+"a"
+    if chk_rotate.get():    # auto rotate
+        type=type+"r"
+    if chk_long.get():    # if w>h (horizontal long) then rotate to vertical long
+        type=type+"t"
+    if scale_factor != 1.0: # scaled down
+        type=type+"s"
 
     stamp_h = "{:02d}{:02d}".format(datetime.now().hour, datetime.now().minute)
     stamp_d = "{:02d}{:02d}{:02d}_".format(datetime.now().year%100,datetime.now().month, datetime.now().day)+stamp_h+type
@@ -324,6 +401,7 @@ def run_add():
             results_dir_out = os.path.join(results_dir_out, "_n")  # increment result output folder  ....
         os.mkdir(results_dir_out)
 
+    print("Output folder: ", results_dir_out)
     filename1=""
     filename2=""
     files_app = []  # list of n-tuples
@@ -354,6 +432,7 @@ def run_add():
 
 
     label_state.configure(text="No more files.")  # show on the GUI screen
+    print("Output folder: ", results_dir_out)
 
 #======================================================================================
 
