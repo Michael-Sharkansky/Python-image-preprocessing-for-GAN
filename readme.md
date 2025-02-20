@@ -1,13 +1,15 @@
 
-			Pre-editing Python programs
+			Python programs for Deep Learning GAN (Generative Adversarial Network) 
+      			images data (features and labels) pre-processing and post-processing.
+	 
 			Programmed by Michael Sharkansky
 
 			Overview
 			
-i-crop-batch ñ run in a batch mode over a folder with images  and create images resized to a definite 
+i-crop-batch ‚Äì run in a batch mode over a folder with images  and create images resized to a definite 
 side size or images re-scaled to percents of the original images. Place the resulting images into another 
 folder.
-i-crop-list-roi  ñ process sequence of images in a folder and create one or two sets of images cut from 
+i-crop-list-roi  ‚Äì process sequence of images in a folder and create one or two sets of images cut from 
 each original image. It can be used to cut features form images or to cut couples of features and labels 
 from images.  Command line:   -c  <config_file>
 i-select  -  for GAN model data: run in a main folder and leave or move files to another folders, I.e. 
@@ -35,35 +37,35 @@ This folder of appended images can be created by running i-list-append2.py over 
 label folder.
 Command line:   -c  <config_file> 
 
-i-list-append2  ñ  take images with the same name from 2 folders and append them into one image, 
+i-list-append2  ‚Äì  take images with the same name from 2 folders and append them into one image, 
 horizontally or vertically. Take an image and split it into two halves, horizontally or vertically.
 
-i-list-appendN  ñ  take images with the same name from N folders listed in the configuration file 
+i-list-appendN  ‚Äì  take images with the same name from N folders listed in the configuration file 
 (default configuration file is: conf_append_n.txt) and append them into one image, horizontally or 
 vertically. 
 
 i-list-append_next - append pairs of consecutive images in a folder into a larger image and place the 
 resulting images into another folder. It is useful when feature is on one image and the label is on the 
-next one (or vice versa).  A program named ìcounters.exeî copies a pair of images with appending a 
+next one (or vice versa).  A program named ‚Äúcounters.exe‚Äù copies a pair of images with appending a 
 running number to them so that they remain consecutive in the folder.
 
-i-compare-folders ñ compare two folder to verify that they contain the same file names for all the files 
+i-compare-folders ‚Äì compare two folder to verify that they contain the same file names for all the files 
 in both folders, feature and label. It is for the GAN models.
 
-i-folder-files ñ remove a number of files from all the subfolders or copy or move a number of files into 
+i-folder-files ‚Äì remove a number of files from all the subfolders or copy or move a number of files into 
 the corresponding subfolder in another folder. It is for the GAN models to help to maintain files in 
 folders with feature and label subfolders. Command line:   -c  <config_file> 
-The selections of from line ìIî to line ìjî will process the I-th line, the j-th line and all the lines between 
+The selections of from line ‚ÄúI‚Äù to line ‚Äúj‚Äù will process the I-th line, the j-th line and all the lines between 
 them: it processes j-i+1 images.
 
-Taftaf-class-u ñ run classification deep learning models.
+Taftaf-class-u ‚Äì run classification deep learning models.
 
-i-find-image ñ find image with same name in another folder and show it. Good for feature/label sets 
+i-find-image ‚Äì find image with same name in another folder and show it. Good for feature/label sets 
 of folders.
 
 i-make-list  - append a sequence of images into one file.
 
-i-make-rename  - remove ëllí or ëffí from the file names.
+i-make-rename  - remove ‚Äòll‚Äô or ‚Äòff‚Äô from the file names.
 
 
  
@@ -73,78 +75,78 @@ i-crop-list-roi
 
 Command line:   -c  <config_file> 
 
-Initialize ñ the 1st button: select folder with images and create subfolders for results.
-Skip ñ skip q-ty of images in the following edit control
-INTR_LINEAR combo ñ select algorithm for image resizing
-Resize checkbox ñ resize result images to the size below
+Initialize ‚Äì the 1st button: select folder with images and create subfolders for results.
+Skip ‚Äì skip q-ty of images in the following edit control
+INTR_LINEAR combo ‚Äì select algorithm for image resizing
+Resize checkbox ‚Äì resize result images to the size below
 256 edit - size of result images
 
-Force to square form checkbox ñ force cropped picture to be square of any size, unscaled (not to be 
-checked together with ëForce to this sizeí)
+Force to square form checkbox ‚Äì force cropped picture to be square of any size, unscaled (not to be 
+checked together with ‚ÄòForce to this size‚Äô)
 
 Force to this size checkbox - force cropped picture to be square of preset size, when an unscaled 
 square of the given size must be cropped from the image
 
-Output to the same name checkbox ñ give the same file name to result images
-Feature and Label order checkbox ñ ensure that Add F and Add L buttons are called in the correct 
+Output to the same name checkbox ‚Äì give the same file name to result images
+Feature and Label order checkbox ‚Äì ensure that Add F and Add L buttons are called in the correct 
 order: Add F is the 1st.  It should be unchecked if no Label images are needed.
-Append 2 results checkbox ñ create a subfolder to store appended resulting feature and labels
-Horizontally combo ñ append either horizontally or vertically
-IrfanView checkbox ñ preview with IrfanView
-Preview check box ñ preview with the internal viewer. The previewed image is closed by space tab. 
+Append 2 results checkbox ‚Äì create a subfolder to store appended resulting feature and labels
+Horizontally combo ‚Äì append either horizontally or vertically
+IrfanView checkbox ‚Äì preview with IrfanView
+Preview check box ‚Äì preview with the internal viewer. The previewed image is closed by space tab. 
 The mouse can select a region over the image by clicking the left mouse button and dragging the 
 mouse until the button release. Any rectangle corner may be started at. It is marked by a small red 
 cross. The assumed vertical axis of the image is selected by clicking the middle mouse button and 
 dragging it until the button release. The drawn assumed axis will cause the image of the selected 
 region to be rotated with the angle between the assumed vertical axis and the real vertical axis of the 
-screen. The region and the axis are discarded by Esc. The confirmation of selection is done by ëspaceí 
+screen. The region and the axis are discarded by Esc. The confirmation of selection is done by ‚Äòspace‚Äô 
 key.
-The preview image is confirmed by ëspaceí key and stays in the results folder. A 1 to 5 key for the label 
+The preview image is confirmed by ‚Äòspace‚Äô key and stays in the results folder. A 1 to 5 key for the label 
 result move it and its feature image to the 1st to 5th category appropriate folders.
-X, Y, W, H ñ enter the ROI selected in the IrfanView
-Next ñ go to the next image
-One Back ñ return one image back (also many times)
-Add Full ñ take the entire image as result. If this button is used, ìResizeî, ìForce to Square formî, 
-ìFeatures and Labels Orderî, ìAppend 2 resultsî should be unchecked. The image may be rotated 
+X, Y, W, H ‚Äì enter the ROI selected in the IrfanView
+Next ‚Äì go to the next image
+One Back ‚Äì return one image back (also many times)
+Add Full ‚Äì take the entire image as result. If this button is used, ‚ÄúResize‚Äù, ‚ÄúForce to Square form‚Äù, 
+‚ÄúFeatures and Labels Order‚Äù, ‚ÄúAppend 2 results‚Äù should be unchecked. The image may be rotated 
 using rotate buttons or the assumed vertical axis line created with the middle mouse button.
-Rotate CW edit ñ angle to which the image is rotated clockwise
+Rotate CW edit ‚Äì angle to which the image is rotated clockwise
 Rotate CCW edit  -angle to which image is rotated counterclockwise
-Add F ñ show image to select the feature and rotate it by the angle in Rotate edit control
-Add L ñ show image to select the label and rotate it by the angle in Rotate edit control
+Add F ‚Äì show image to select the feature and rotate it by the angle in Rotate edit control
+Add L ‚Äì show image to select the label and rotate it by the angle in Rotate edit control
 Rotate F - rotate the feature image by the angle in Rotate edit controls and display the result
 Rotate L - rotate the label image by the angle in Rotate edit controls and display the result
-Again ñ discard already selected result images and allow to use Add F and Add L again
-Fit Big Image checkbox ñ fit big image view into the screen size (view is distorted).  The Checkbox is 
+Again ‚Äì discard already selected result images and allow to use Add F and Add L again
+Fit Big Image checkbox ‚Äì fit big image view into the screen size (view is distorted).  The Checkbox is 
 reset when the image is fully processed, unless always checkbox is set.
 Always checkbox -  do not reset the Fit Big Image checkbox on image processing completion.usefull 
 whe most f the images in the set are vary large.
-RButton combo-box ñ ìCommit/upî causes right button up to serve as ìspaceî key to proceed with 
-the image, ìRe-center/dblî causes the place of right button double click to become the center of the 
+RButton combo-box ‚Äì ‚ÄúCommit/up‚Äù causes right button up to serve as ‚Äúspace‚Äù key to proceed with 
+the image, ‚ÄúRe-center/dbl‚Äù causes the place of right button double click to become the center of the 
 selected image region.
-Move to ñ move the result files to the subfolder in the folder in the edict control at the right as Source 
+Move to ‚Äì move the result files to the subfolder in the folder in the edict control at the right as Source 
 (source file), Sniplets (result files), All (both of them)
-Delete last ñ delete the last set of results.
+Delete last ‚Äì delete the last set of results.
 Save as -  save as .jpg or .png
-Class ñ append this string to the filenames. Good to separate the files into groups later.
-Category selection ñ move the derived images into a category folder
-Move checkbox ñ move to category folder if checked, otherwise ñ copy.
+Class ‚Äì append this string to the filenames. Good to separate the files into groups later.
+Category selection ‚Äì move the derived images into a category folder
+Move checkbox ‚Äì move to category folder if checked, otherwise ‚Äì copy.
 Undo Last  - return the last set of images from a category folder to the results folder.
-Close on timeout ñ causes the preview and approval widows to be closed after several seconds.
+Close on timeout ‚Äì causes the preview and approval widows to be closed after several seconds.
 
 
-i-crop-batch ñ run in a batch mode over a folder with images  and create images resized to a definite 
+i-crop-batch ‚Äì run in a batch mode over a folder with images  and create images resized to a definite 
 side size or images rescaled to percents of the original images in another folder.
-Initialize ñ the 1st button: select folder with images and create subfolders with results in it.
-INTR_LINEAR combo ñ select algorithm for image resizing
-Resize checkbox ñ resize result images to the size below or to percentage below
+Initialize ‚Äì the 1st button: select folder with images and create subfolders with results in it.
+INTR_LINEAR combo ‚Äì select algorithm for image resizing
+Resize checkbox ‚Äì resize result images to the size below or to percentage below
 256 edit - size of result images or percentage of original image
-Output to the same name checkbox ñ give the same file name to result images
-Reset ñ clear all previous settings. Good before another batch.
-Skip ñ skip q-ty of images in the following edit control
-Class ñ append this string to the filenames. Good to separate the files into groups later.
+Output to the same name checkbox ‚Äì give the same file name to result images
+Reset ‚Äì clear all previous settings. Good before another batch.
+Skip ‚Äì skip q-ty of images in the following edit control
+Class ‚Äì append this string to the filenames. Good to separate the files into groups later.
 Go  - start the batch processing.
-X, Y, W, H ñ show size of the current image
-Rotate CW edit ñ angle to which the image is rotated clockwise
+X, Y, W, H ‚Äì show size of the current image
+Rotate CW edit ‚Äì angle to which the image is rotated clockwise
 Rotate CCW edit  - angle to which the  image is rotated counterclockwise
 
 
@@ -152,31 +154,31 @@ i-list-append2
 takes the images with the same name from 2 folders and append them into one image, horizontally or 
 vertically. Take an image and split it into two halves, horizontally or vertically. 
 
-Orientation ñ append images horizontally or vertically
-Initialize for Append ñ set folders of files to be appended and result files folder. The 1st image is called 
+Orientation ‚Äì append images horizontally or vertically
+Initialize for Append ‚Äì set folders of files to be appended and result files folder. The 1st image is called 
 feature, the 2nd is called label.
-Init for next Append ñ takes the output folder and allows to append to it from another folder.
-Append ñ start batch run.
+Init for next Append ‚Äì takes the output folder and allows to append to it from another folder.
+Append ‚Äì start batch run.
 
-Automatic orientation check-box ñ determine automatically how the files should be splitter: vertically 
+Automatic orientation check-box ‚Äì determine automatically how the files should be splitter: vertically 
 or horizontally. If not check, Orientation combo defines the split line.
 
-For the 1st part combo and edit ñ the first image in 1/n part of the entire image, or the first pat has p 
+For the 1st part combo and edit ‚Äì the first image in 1/n part of the entire image, or the first pat has p 
 pixels.
-Split ñ set folders and run split batch.
+Split ‚Äì set folders and run split batch.
 
 i-list-append_next
 Takes the 2 consecutive images  from a folder and append them into one image, horizontally or 
-vertically, naming it after the 1st image, adding a suffix to the output file names, default is ì_dî.
+vertically, naming it after the 1st image, adding a suffix to the output file names, default is ‚Äú_d‚Äù.
 Each pair of images must have at least one of their dimensions to be the same and in accordance with 
-the ìorientationî selection.
-Orientation ñ append images horizontally or vertically. ìLongî causes  images to be appended along 
+the ‚Äúorientation‚Äù selection.
+Orientation ‚Äì append images horizontally or vertically. ‚ÄúLong‚Äù causes  images to be appended along 
 their  longest dimension.
-Initialize for Append ñ set folder to hold the results and the folder from which to append couples of 
+Initialize for Append ‚Äì set folder to hold the results and the folder from which to append couples of 
 consecutive images. 
-Auto Resize ñ if checked, the application corrects the cases when there is a different size along the 
+Auto Resize ‚Äì if checked, the application corrects the cases when there is a different size along the 
 appending axis dimension. 
-Append ñ start batch run.
+Append ‚Äì start batch run.
 
 i-select  
 For GAN model data: run in a main folder and leave or move files to another folders take a file and 
@@ -190,15 +192,15 @@ appended feature/label images.
 This folder of appended images can be created by running i-append.py over feature folder and label 
 folder.
 Init - set folders.
-Skip ñ skip q-ty of images in the following edit control.
+Skip ‚Äì skip q-ty of images in the following edit control.
 Next  - Select next image and show it. Space bar closes the image view.
-Move ñ move this image to the other folder.
-One back ñ return back to the previous image.
-Fit big image checkbox ñ resize big image display to fit he screen.
+Move ‚Äì move this image to the other folder.
+One back ‚Äì return back to the previous image.
+Fit big image checkbox ‚Äì resize big image display to fit he screen.
 i-compare-folders 
 compares two folder to verify that they contain the same file names for all the files in both folders. It is 
 for the GAN models.
-Go ñselect the two folders to compare and run the comparison. The result is displayed on console 
+Go ‚Äìselect the two folders to compare and run the comparison. The result is displayed on console 
 window or the output window.
 
 --- *** ---
