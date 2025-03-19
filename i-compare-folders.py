@@ -18,7 +18,7 @@ from tkinter import filedialog
 
 # init tkinter GUI -----------------------------------------------------------------------------------------
 window=Tk() # tkinter start
-window.title("Compare folders")
+window.title("Compare folders, V1.2")
 window.geometry('980x280')  # window size
 
 label_f1 = Label(window, text="Folder 1")
@@ -62,11 +62,16 @@ def run_cmp():
     if len1!=len2 :
         print("folder lengths are different: {}, {}".format(len1, len2))
 
+    cnt=0
     for i in range(min(len1,len2)):
         outfile1 = os.path.basename(files1[i])
         outfile2 = os.path.basename(files2[i])
         if outfile1!=outfile2:
             print("different: {}, {}".format(files1[i],files2[i]))
+            cnt=cnt+1
+        if cnt>3:   # do not scan to the very end, break after coule of lines
+            print("and more files down there...\n")
+            break
     print("Done.")
 
 button_init = Button(window, text="Go ", bg="orange", fg="black", command=run_cmp)

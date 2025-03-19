@@ -17,6 +17,8 @@ import cv2  # use: pip install opencv-contrib-python
 #import winsound
 import platform
 import math
+#import chime
+
 
 #GUI with tkinter, see https://likegeeks.com/python-gui-examples-tkinter-tutorial/
 from tkinter.ttk import *
@@ -32,7 +34,6 @@ args = vars(ap.parse_args())
 print("Base: ",args["path"])
 print("Conf: ",args["conf"])
 print("Running {}, {}.".format(os.path.realpath(__file__), time.ctime(os.path.getmtime(__file__)) ) , flush=True)
-
 
 #init global variables  ------------------------------------------------------------------------------------------
 print(os.getcwd(), flush=True)  # print working dir (import os)
@@ -85,6 +86,7 @@ key_rot=0
 last_dir=""
 config=""
 fit_screen=True
+#chime.info()
 
 if p_system=="windows" or p_system=="Windows":
     init_move_to_dir="C:/Temp"  # for Move To
@@ -119,12 +121,15 @@ if args["conf"] is not None:    # load config file with folder names
         print("Loaded. Press the Config button to set the data from the folders.")
     else:
         config=""
+        print("Config file not found. Press the Initialize button to select the folders.")
+else:
+    print("Press the Initialize button to select the folders.")
 
 
 # init tkinter GUI -----------------------------------------------------------------------------------------
 window=Tk() # tkinter start
-window.title("Crop, resize, rotate, move (v2.16)")
-window.geometry('800x610')  # window size
+window.title("Crop, resize, rotate, move (v2.22)")
+window.geometry('800x630')  # window size
 
 # screen size
 wscreen = window.winfo_screenwidth()
@@ -139,36 +144,85 @@ entry_current.grid(column=6, row=0)  # location within the window
 entry_current.insert(0, "?")
 
 label_prefix = Label(window, anchor=E, text="Prefix:")
-label_prefix.grid(column=0, row=0)   # widget's location
+label_prefix.grid(column=0, row=0)
 
 entry_prefix = Entry(window, width=8)  # class type to be added before output file names, like good_, bad_, for the 'not same name' option
-entry_prefix.grid(column=1, row=0)  # location within the window
+entry_prefix.grid(column=1, row=0)
 entry_prefix.insert(0, "")
 
 label_class = Label(window, anchor=E, text="Class:")
-label_class.grid(column=2, row=0)   # widget's location
+label_class.grid(column=2, row=0)
 
 entry_class = Entry(window, width=8)  # class type to be added after output file names, like _good, _bad, for the 'not same name' option
-entry_class.grid(column=3, row=0)  # location within the window
+entry_class.grid(column=3, row=0)
 entry_class.insert(0, "")
 
 entry_skip = Entry(window, width=8)  # skip files  widget
 entry_skip.grid(column=1, row=1)
 entry_skip.insert(0, "0")
 
+label_total = Label(window, anchor=E, text="?")    # total files
+label_total.grid(column=2, row=1)
+
 label_right = Label(window, anchor=E, text="RButton:")
-label_right.grid(column=2, row=1)   # widget's location
+label_right.grid(column=3, row=1)
 
 combo_right = Combobox(window, width=12, state='readonly')
 combo_right['values'] = ("Commit/up",  "Re-center/dbl")      # right button function: commin for button uo, re-center for double click
 combo_right.current(1)  # set the selected item
-combo_right.grid(column=3, row=1)
+combo_right.grid(column=4, row=1)
 
-label_done = Label(window, anchor=E, text="0")
-label_done.grid(column=1, row=15)
+label_bl1 = Label(window, anchor=E, text="-")
+label_bl1.grid(column=0, row=2)
+
+chk_irfan=BooleanVar()
+chk_irfan.set(False)
+chk_box_irfan = Checkbutton(window, text="IrfanView", var=chk_irfan)
+chk_box_irfan.grid(column=3, row=2)
+
+chk_preview=BooleanVar()
+chk_preview.set(True)
+chk_box_preview = Checkbutton(window, text="Preview", var=chk_preview)
+chk_box_preview.grid(column=4, row=2)
+
+# set for the title bar of IrfanView region selection (x, y; w X h)
+label_ifile = Label(window, anchor=E, text="X,Y,W,H")
+label_ifile.grid(column=0, row=3)
+
+entry_x = Entry(window, width=8)  # x
+entry_x.grid(column=1, row=3)
+entry_x.insert(0, str(0)) #put text into the entry widget:
+
+entry_y = Entry(window, width=8)  # y
+entry_y.grid(column=2, row=3)
+entry_y.insert(0, str(0)) #put text into the entry widget:
+
+entry_w = Entry(window, width=8)  # w
+entry_w.grid(column=3, row=3)
+entry_w.insert(0, str(0)) #put text into the entry widget:
+
+entry_h = Entry(window, width=8)  # h
+entry_h.grid(column=4, row=3)
+entry_h.insert(0, str(0)) #put text into the entry widget:
+
+label_ifile3 = Label(window, anchor=E, text="Save as")
+label_ifile3.grid(column=0, row=5)
+
+entry_save_as = Entry(window, width=8)  # h
+entry_save_as.grid(column=1, row=5)
+entry_save_as.insert(0,  save_as) #put text into the entry widget: .jpg
+
+entry_temp = Entry(window, width=10)  # y
+entry_temp.grid(column=5, row=6)
+entry_temp.insert(0, init_move_to_dir) #put text into the entry widget: temp folder to move files (Move To)
 
 label_controls = Label(window, anchor=E, text="Options:")
 label_controls.grid(column=6, row=5)
+
+combo_move_all = Combobox(window, width=7, state='readonly')
+combo_move_all['values'] = ("Sniplets",  "Source",   "All" )      # what to move: the small picture, the image  or all
+combo_move_all.current(0)  # set the selected item
+combo_move_all.grid(column=3, row=6)
 
 combo_inter = Combobox(window, width=16, state='readonly')
 combo_inter['values'] = ("INTER_LINEAR",  "INTER_AREA",  "INTER_NEAREST", "INTER_CUBIC", "INTER_LANCZOS4", "DEFAULT" )      # resize interpolation
@@ -178,7 +232,7 @@ combo_inter.grid(column=6, row=6)
 
 chk_resize=BooleanVar()     # resize/scale the cropped image to the preset size (not togeher with tosize)
 chk_resize.set(True)
-chk_box_resize = Checkbutton(window, text="Resize", var=chk_resize)
+chk_box_resize = Checkbutton(window, text="Resize to:", var=chk_resize)
 chk_box_resize.grid(column=6, row=9)
 
 entry_resize = Entry(window, width=8)  # side size for resize
@@ -207,82 +261,16 @@ chk_box_sfeature.grid(column=6, row=14)
 
 chk_append2=BooleanVar()    # append feature and label to one image
 chk_append2.set(True)
-chk_box_append2 = Checkbutton(window, text="Append 2 results", var=chk_append2)
+chk_box_append2 = Checkbutton(window, text="Append 2 results:", var=chk_append2)
 chk_box_append2.grid(column=6, row=15)
 
-chk_fit_big=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
-chk_fit_big.set(False)
-chk_box_fit_big = Checkbutton(window, text="Fit big\nimage", var=chk_fit_big)
-chk_box_fit_big.grid(column=2, row=15)
-
-chk_fit_big_auto=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
-chk_fit_big_auto.set(True)
-chk_box_fit_big_auto = Checkbutton(window, text="Fit auto", var=chk_fit_big_auto)
-chk_box_fit_big_auto.grid(column=2, row=16)
-
-entry_thresh = Entry(window, width=5)  # auto fit coefficient to compute size threshold
-entry_thresh.grid(column=2, row=17)
-entry_thresh.insert(0, str(1.05)) # threshold coefficient default
-
-
-chk_fit_big_keep=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
-chk_fit_big_keep.set(False)
-chk_box_fit_big_keep = Checkbutton(window, text="always", var=chk_fit_big_keep)
-chk_box_fit_big_keep.grid(column=3, row=15)
-
-label_bl1 = Label(window, anchor=E, text="-")
-label_bl1.grid(column=0, row=2)
-
-# set for the title bar of IrfanView region selection (x, y; w X h)
-label_ifile = Label(window, anchor=E, text="X,Y,W,H")
-label_ifile.grid(column=0, row=3)   # widget's location
-
-entry_x = Entry(window, width=8)  # x
-entry_x.grid(column=1, row=3)
-entry_x.insert(0, str(0)) #put text into the entry widget:
-
-entry_y = Entry(window, width=8)  # y
-entry_y.grid(column=2, row=3)
-entry_y.insert(0, str(0)) #put text into the entry widget:
-
-entry_w = Entry(window, width=8)  # w
-entry_w.grid(column=3, row=3)
-entry_w.insert(0, str(0)) #put text into the entry widget:
-
-entry_h = Entry(window, width=8)  # h
-entry_h.grid(column=4, row=3)
-entry_h.insert(0, str(0)) #put text into the entry widget:
-
-chk_irfan=BooleanVar()
-chk_irfan.set(False)
-chk_box_irfan = Checkbutton(window, text="IrfanView", var=chk_irfan)
-chk_box_irfan.grid(column=3, row=2)
-
-chk_preview=BooleanVar()
-chk_preview.set(True)
-chk_box_preview = Checkbutton(window, text="Preview", var=chk_preview)
-chk_box_preview.grid(column=4, row=2)
-
-label_ifile3 = Label(window, anchor=E, text="Save as")
-label_ifile3.grid(column=0, row=5)
-
-entry_save_as = Entry(window, width=8)  # h
-entry_save_as.grid(column=1, row=5)
-entry_save_as.insert(0,  save_as) #put text into the entry widget: .jpg
-
-entry_temp = Entry(window, width=10)  # y
-entry_temp.grid(column=5, row=6)
-entry_temp.insert(0, init_move_to_dir) #put text into the entry widget: temp folder to move files (Move To)
-
-combo_move_all = Combobox(window, width=7, state='readonly')
-combo_move_all['values'] = ("Sniplets",  "Source",   "All" )      # what to move: the image, the small picture or all
-combo_move_all.current(0)  # set the selected item
-combo_move_all.grid(column=3, row=6)
+label_done = Label(window, anchor=E, text="0")
+label_done.grid(column=1, row=16)
 
 # rotation outliers fill
-combo_outlier = Combobox(window, width=9, state='readonly')
-combo_outlier['values'] = ("Constant",  "Transparent" )      # outlier of rotation (single color or previous background
-combo_outlier.current(0)  # set the selected item
+combo_outlier = Combobox(window, width=16, state='readonly')
+combo_outlier['values'] = ("Constant",  "Transparent", "Crop then rotate", "Rotate then crop" )      # outlier of rotation (single color or previous background
+combo_outlier.current(3)  # set the selected item
 combo_outlier.grid(column=2, row=11)
 
 entry_r = Entry(window, width=3)  # red
@@ -297,63 +285,78 @@ entry_b = Entry(window, width=3)  # blue
 entry_b.grid(column=5, row=11)
 entry_b.insert(0, str(0)) #  0 dft
 
+chk_inplace=BooleanVar()   # if true, if the entire image was taken then it should be stored in place after rotation
+chk_inplace.set(False)
+chk_box_chk_inplace = Checkbutton(window, text="Add full\nIn-place", var=chk_inplace)
+chk_box_chk_inplace.grid(column=5, row=12)
+
 label_rot = Label(window, anchor=E, text="Rotate CCW\n+ <= -")
-label_rot.grid(column=4, row=12)
+label_rot.grid(column=4, row=13)
 
 entry_rot = Entry(window, width=5)  # counter-clockwise rotation angle
-entry_rot.grid(column=4, row=13)
+entry_rot.grid(column=4, row=14)
 entry_rot.insert(0, '') #put text into the entry widget
 
 label_rot1 = Label(window, anchor=E, text="Rotate CW\n =>")
-label_rot1.grid(column=2, row=12)
+label_rot1.grid(column=2, row=13)
 
 entry_rot1 = Entry(window, width=5)  # clockwise rotation angle
-entry_rot1.grid(column=2, row=13)
+entry_rot1.grid(column=2, row=14)
 entry_rot1.insert(0, '') #put text into the entry widget
 
 label_last = Label(window, text="*")
-label_last.grid(column=1, row=13)
+label_last.grid(column=1, row=14)
 
 #label_resized = Label(window, anchor=E, text="-")   #show whether the image was resized to fit the screen
-#label_resized.grid(column=2, row=14)   # widget's location
+#label_resized.grid(column=2, row=15)   # widget's location
 
-chk_rot_tall=BooleanVar()   # if true, roate all image to horizontal
-chk_rot_tall.set(False)
-chk_box_chk_rot_tall = Checkbutton(window, text="Rotate tall", var=chk_rot_tall)
-chk_box_chk_rot_tall.grid(column=5, row=16)
+chk_fit_big=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
+chk_fit_big.set(False)
+chk_box_fit_big = Checkbutton(window, text="Fit big\nimage", var=chk_fit_big)
+chk_box_fit_big.grid(column=2, row=16)
 
-entry_ver_thresh = Entry(window, width=3)  # threshold of tall to be roatated to horizontalS
-entry_ver_thresh.grid(column=5, row=17)
-entry_ver_thresh.insert(0, str(1.0)) # 1.0 default
+chk_fit_big_keep=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
+chk_fit_big_keep.set(False)
+chk_box_fit_big_keep = Checkbutton(window, text="always", var=chk_fit_big_keep)
+chk_box_fit_big_keep.grid(column=3, row=16)
+
+chk_fit_big_auto=BooleanVar()     # fit big image to window, good when selectinf feature/label, can changed at any time
+chk_fit_big_auto.set(True)
+chk_box_fit_big_auto = Checkbutton(window, text="Fit big auto:", var=chk_fit_big_auto)
+chk_box_fit_big_auto.grid(column=4, row=16)
+
+entry_thresh = Entry(window, width=5)  # auto fit coefficient to compute size threshold: fit auto
+entry_thresh.grid(column=5, row=16)
+entry_thresh.insert(0, str(1.05)) # threshold coefficient default
 
 combo_order = Combobox(window, width=11)
 combo_order['values'] = ("Horizontally",  "Vertically" )      # append axis
 combo_order.current(1)  # set the selected item
 combo_order.grid(column=6, row=16)
 
-
-label_last_categ = Label(window, anchor=E, text=">")    # the last category that was selected
-label_last_categ.grid(column=0, row=17)   
-
-chk_inplace=BooleanVar()   # if true, if the entire image was taken then it should be stored in place after rotation
-chk_inplace.set(False)
-chk_box_chk_inplace = Checkbutton(window, text="In-place", var=chk_inplace)
-chk_box_chk_inplace.grid(column=3, row=17)
-
 chk_center_mark=BooleanVar()   # if true, show center mark of selecter region
 chk_center_mark.set(True)
-chk_box_chk_center_mark = Checkbutton(window, text="Center marker", var=chk_center_mark)
-chk_box_chk_center_mark.grid(column=4, row=17)
+chk_box_chk_center_mark = Checkbutton(window, text="Center\nmarker", var=chk_center_mark)
+chk_box_chk_center_mark.grid(column=2, row=17)
+
+chk_bell=BooleanVar()   # if true, ring bell - beep
+chk_bell.set(True)
+chk_box_chk_bell = Checkbutton(window, text="Bell", var=chk_bell)
+chk_box_chk_bell.grid(column=3, row=17)
+
+chk_rot_tall=BooleanVar()   # if true, rotate all image to horizontal
+chk_rot_tall.set(False)
+chk_box_chk_rot_tall = Checkbutton(window, text="Rotate tall:", var=chk_rot_tall)
+chk_box_chk_rot_tall.grid(column=4, row=17)
+
+entry_ver_thresh = Entry(window, width=5)  # threshold of tall image to be rotated to horizontal: rotate tall
+entry_ver_thresh.grid(column=5, row=17)
+entry_ver_thresh.insert(0, str(1.05)) # 1.05 default
 
 chk_fixed_folder=BooleanVar()   # if true, use fixed subfolder names: dataff, datall, datafl, otherwise use foder names with time stamps
 chk_fixed_folder.set(True)
 chk_box_fixed_folder = Checkbutton(window, text="Fixed sub-folder names", var=chk_fixed_folder)
 chk_box_fixed_folder.grid(column=6, row=17)
-
-chk_copy=BooleanVar()   # if true, move file, else copy them
-chk_copy.set(True)
-chk_box_copy = Checkbutton(window, text="Move", var=chk_copy)
-chk_box_copy.grid(column=0, row=18)
 
 chk_timeout=BooleanVar()   # if true, use fixed subfolder names: dataff, datall, datafl, otherwise use foder names with time stamps
 chk_timeout.set(False)
@@ -368,6 +371,7 @@ label_resized.grid(column=6, row=22)   # widget's location
 
 #--------------------------------------------------------------------------------------------
 def beep():
+    print("beep \a \n")
     frequency = 80  # Set Frequency To 800 Hertz
     duration = 500  # Set Duration To 1000 ms == 1 second
     #winsound.Beep(frequency, duration)
@@ -384,6 +388,7 @@ align = False
 abandon=False
 proceed=False
 center=False
+horizontal_arrow=False
 
 def CountFiles(dir_path):
     cnt=len([entry for entry in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, entry))])
@@ -402,10 +407,10 @@ def isOutOfScreen(img):
     height=img.shape[0]
     threshold = float(entry_thresh.get())
     if float(height) >= float(hscreen)*threshold or  float(width) >= float(wscreen)*threshold :  # too high or too wide
-        print("Higher/wider - image {} X {}, screen {} X {}\n".format(width , height, wscreen,  hscreen))
+        print("Higher/wider - image {} X {}, screen {} X {}".format(width , height, wscreen,  hscreen))
         return True
     else:
-        print("Smaller - image {} X {}, screen {} X {}\n".format(width , height, wscreen,  hscreen))
+        print("Smaller - image {} X {}, screen {} X {}".format(width , height, wscreen,  hscreen))
         return False
 
 def get_interplation():
@@ -432,41 +437,55 @@ def get_interplation():
         return cv2.INTER_LINEAR
 
 
-#mouse event callback,
+#mouse event callback, from setMouseCallback
 # see https://www.pyimagesearch.com/2015/03/09/capturing-mouse-click-events-with-python-and-opencv/
 def  click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
-    global refPt, cropping, img, abandon, title, verPt, align, proceed, cenPt, center, middle
+    global refPt, cropping, img, abandon, title, verPt, align, proceed, cenPt, center, middle, horizontal_arrow
 
     # With the middle button, draw a line that will become the vertical axis of the image after the rotation
     if event == cv2.EVENT_MBUTTONDOWN:  #start assumed vertical axis,  to rotate the image, click middle button
         verPt = [(x, y)]
         align = True
         cv2.drawMarker(img, verPt[0], (0, 155, 155))  # add small pale cross for the starting point of ROI (BGR)
+        if (flags & cv2.EVENT_FLAG_ALTKEY)!=0:
+            horizontal_arrow = True  # alt + left button up : take the rotation axis as horizontal, arrow to left
     if event == cv2.EVENT_MBUTTONUP:    # end assumed vertical axis,  to rotate the image, release middle button
         verPt.append((x, y))
         # draw a line around the region of interest
         #cv2.line(img, verPt[0], verPt[1], (128, 128, 0), 2)  #magenta line of width 2
         cv2.arrowedLine(img, verPt[1], verPt[0], (128, 128, 0), 2)  #magenta arrow of width 2, tip looks up (color is BGR)
         align = False
+        if (flags & cv2.EVENT_FLAG_ALTKEY)!=0:  # alt + middle button up : take the rotation axis as horizontal, arrow to left
+            horizontal_arrow = True  # alt + left button up : take the rotation axis as horizontal, arrow to left
+            if chk_bell.get():
+                beep()
 
     # if the left mouse button was clicked, record the starting
     # (x, y) coordinates and indicate that cropping is being performed
-    if event == cv2.EVENT_LBUTTONDOWN:
-        #print(f"dowm: x={x}, y{y}")
+    if (event == cv2.EVENT_LBUTTONDOWN or  event == cv2.EVENT_LBUTTONUP) and flags == cv2.EVENT_FLAG_ALTKEY:
+        horizontal_arrow=True               # alt + left button up : take the rotation axis as horizontal, arrow to left
+        print(f"Horizontal event={event} flags={flags}\n")
+        beep()
+        middlef =tuple( [x,y] )
+        cv2.drawMarker(img, middlef, (0, 255, 255), markerType=cv2.MARKER_STAR,  markerSize=11)  # add small yellow star indicator (BGR)
+    if event == cv2.EVENT_LBUTTONDOWN and (flags & cv2.EVENT_FLAG_ALTKEY)==0:
+        #print(f"down: x={x}, y{y}, flags={flags}")
         refPt = [(x, y)]
         cv2.drawMarker(img, refPt[0], (0, 0, 255))  # add small red cross for the starting point of ROI (BGR)
         cropping = True
     # check to see if the left mouse button was released
-    elif event == cv2.EVENT_LBUTTONUP:
+    elif event == cv2.EVENT_LBUTTONUP and (flags & cv2.EVENT_FLAG_ALTKEY)==0:
         # record the ending (x, y) coordinates and indicate that
         # the cropping operation is finished, if it was initiated; thus it is distinguished from
+        #print(f"up: x={x}, y{y}, flags={flags}")
         if cropping:
             refPt.append((x, y))
         cropping = False
 
         # draw a rectangle around the region of interest and write its size over the image
         text="{:03d}:{:03d}".format(refPt[1][0]-refPt[0][0], refPt[1][1]-refPt[0][1] )
+        #print("ROI size",text)
         cv2.putText(img,text, (10,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 1)   # draw the ROI size in upper left coner in red
         cv2.rectangle(img, refPt[0], refPt[1], (0, 255, 0), 2)  #green line of width 2
         if chk_center_mark.get() == True:   # draw a mark in the middle of the FINAL SELECTED ROI!  final_size
@@ -477,7 +496,7 @@ def  click_and_crop(event, x, y, flags, param):
             middle = tuple([xm, ym])
             middlef = tuple([xmf, ymf])
             cv2.drawMarker(img, middle, (0, 255, 0) , markerType=cv2.MARKER_DIAMOND, markerSize=10  )  # add small green diamonf in the center of ROI (BGR)
-            #cv2.drawMarker(img, middlef, (0, 255, 255) , markerType=cv2.MARKER_DIAMOND, markerSize=10  )  # add small yellow diamonf in the center of final ROI (BGR)
+            #cv2.drawMarker(img, middlef, (0, 255, 255) , markerType=cv2.MARKER_DIAMOND, markerSize=10  )  # add small yellow diamond in the center of final ROI (BGR)
             #print(f"middle: xm={xm}, ym={ym}  xmf={xmf}, ymf={ymf}")
 
         cv2.imshow(title, img)
@@ -486,6 +505,7 @@ def  click_and_crop(event, x, y, flags, param):
         center = False
         cenPt = []
     if event == cv2.EVENT_RBUTTONDBLCLK and not IsRButtonCommit():       #re-center the image
+        print(f"center: x={x}, y={y}")
         cenPt = [(x, y)]
         cv2.drawMarker(img, cenPt[0], (255, 120, 255))  # add small magenta cross for the starting point of ROI (BGR)
         center = True
@@ -500,7 +520,7 @@ def  click_and_crop(event, x, y, flags, param):
 #=========================================================================================================
 
 
-def rotateImage(image, angle):  #rotate image to an angle (positive - counterclockwise)
+def rotateImage(image, angle, around_any, center):  #rotate image to an angle (positive - counterclockwise)
     selected = combo_outlier.get()  # set outliers area
     if selected=="Transparent":
         borderMode = cv2.BORDER_TRANSPARENT     # leave as it is, does not work good...
@@ -517,7 +537,10 @@ def rotateImage(image, angle):  #rotate image to an angle (positive - counterclo
         b_b=int(entry_b.get())
         if b_b<0 or b_b>255: b_b=0
 
-    image_center = tuple(np.array(image.shape[1::-1]) / 2)
+    if around_any:
+        image_center=center
+    else:
+        image_center = tuple(np.array(image.shape[1::-1]) / 2)
     rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
     result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=get_interplation(),     #dft: cv2.INTER_LINEAR
                             borderMode=borderMode,                  # cv2.BORDER_CONSTANT,  cv2.BORDER_TRANSPARENT
@@ -526,14 +549,18 @@ def rotateImage(image, angle):  #rotate image to an angle (positive - counterclo
     return result
 
 
-def rotateImage90(img): # rotate image to 90 angle
+def rotateImage90deg(img): # rotate image to 90 angle
     rotateCode=cv2.ROTATE_90_COUNTERCLOCKWISE # cv2.ROTATE_90_COUNTERCLOCKWISE  cv2.ROTATE_90_CLOCKWISE  cv2.ROTATE_180
     result=cv2.rotate(img, rotateCode)
     return result
 
-def flipImage(image, axis):  #flip image around axis 0 - x , 1 - y,  -1 - x and y
-    result = cv2.flip(image, axis)
-    return result
+def flipImage(image_file, axis):  #flip image around axis 0 - x , 1 - y,  -1 - x and y
+    image = cv2.imread(image_file)
+    result = image
+    cv2.flip(image, axis, dst=result)
+    cv2.imwrite(image_file, result)
+    print("Flipped around Y. ", image_file)
+    return image_file
 
 def run_flip_f():
     global last_img_f , last_img_v
@@ -615,9 +642,11 @@ def run_loading() :
         log_file.write("{} {} of {}\n".format(stamp_start, os.path.realpath(__file__), time.ctime(os.path.getmtime(__file__)) ))
         log_file.write("Log file: {} \n".format(log_file_name))
         print("Log file: ", log_file_name, flush=True)
-        total_files_read = sum([len(files) for r, d, files in os.walk(base_dir)])
+        total_files_read = sum([len(files) for r, d, files in os.walk(base_dir)])            #  r, d, files
         text="{} files in {}".format(total_files_read,base_dir)
         label_state.configure(text=text)  # show on the GUI screen
+        text="/ {}".format(total_files_read)
+        label_total.configure(text=text)  # total files
 
         # r=root, d=directories, f = files
         for r, d, f in os.walk(base_dir):
@@ -672,14 +701,14 @@ def run_rot_v():
     global last_img_f , last_img_v
     run_rot(last_img_v)
 
-def run_rot(last_img):
+def run_rot(last_img):  # rotate image on a 'rotate' button pressed
     angle=int(entry_rot.get())   if entry_rot.get()!='' and entry_rot.get()!=' ' else 0  #
     angle1=int(entry_rot1.get()) if entry_rot1.get()!='' and entry_rot1.get()!=' ' else 0 #
     if angle1!=0 and angle==0:
         angle=-angle1
     if angle!=0:
         img_r = cv2.imread(last_img)
-        img_r=rotateImage(img_r, angle)
+        img_r=rotateImage(img_r, angle, False, tuple( [0,0] ))
         cv2.imwrite(last_img ,img_r)
 
         cv2.imshow("Rotated", img_r)
@@ -692,8 +721,8 @@ def run_rot(last_img):
         entry_rot1.insert(0, '')
     return
 
-def rotate_cropped(rot_key, imgi, outfile_name ):
-    img1 = rotateImage(imgi, 90 * key_rot)    # rotate image 90*n deg
+def rotate_cropped(rot_key, imgi, outfile_name ):   # rotate image to a multiple of 90 deg. upon a k/b command
+    img1 = rotateImage(imgi, 90 * key_rot, False, tuple( [0,0] ))    # rotate image 90*n deg
     cv2.imwrite(outfile_name, img1)
     return img1
 
@@ -703,6 +732,7 @@ def run_add_f():
     if chk_inplace.get() == True:  # if the entire image was taken, this is disabled
         print("Add F is disabled for in-place save!\n")
         return
+    label_last_categ.configure(text="-")    # reset cathegory
     run_add("f")
     global done
     done=done+1
@@ -728,7 +758,7 @@ def run_add_full():
 def run_add(type):
     global inner_counter
     global final_size
-    global refPt, cropping, img,  verPt, align, abandon, proceed, cenPt, center
+    global refPt, cropping, img,  verPt, align, abandon, proceed, cenPt, center, horizontal_arrow
     global last_img_f , last_img_v, order
     global title
     global save_as, key_rot
@@ -753,6 +783,7 @@ def run_add(type):
     if angle1!=0 and angle==0:
         angle=-angle1
     proceed=False
+    horizontal_arrow = False
 
     if type == 'f' or type == 'x':
         inner_counter=inner_counter+1
@@ -769,7 +800,11 @@ def run_add(type):
 
     print("<<<", filename)
     if filename=='?':
-            print("Select file, press Next!!!!!!")
+        print("Select file, press Next!!!!!!")
+        return
+    if filename=='':
+        print("ERROR: cannot read the image file: no file name")
+        return
     # crop
     img = cv2.imread(filename)
     do_adjust = isOutOfScreen(img)
@@ -780,11 +815,11 @@ def run_add(type):
         # width - shape[1], heigth - shape[0]
         if chk_rot_tall.get()  and img.shape[0] > img.shape[1] and img.shape[0] > int(hscreen * ver_threshold):  # lay tall image horizontally
             print("Rotate to horizontal")                                # not good when an image it too tall!
-            img = rotateImage90(img) #, 90) # angle = 90
+            img = rotateImage90deg(img) # angle = 90
 
         clone = img.copy()
         if (chk_fit_big.get() or (chk_fit_big_auto.get() and do_adjust)):
-            print("Adjust to screen {} X {}\n".format(img.shape[1], img.shape[0]))
+            print("Adjust to screen {} X {}".format(img.shape[1], img.shape[0]))
             label_resized.configure(text="Resized")  # show on the GUI screen
             cv2.namedWindow(title,cv2.WINDOW_NORMAL) #  #fit to window size   WINDOW_NORMAL   WINDOW_KEEPRATIO
             cv2.setWindowProperty(title, cv2.WINDOW_NORMAL, cv2.WND_PROP_ASPECT_RATIO)  # keeps ratio ????
@@ -807,11 +842,12 @@ def run_add(type):
                 abandon=False
                 center=False
                 key_rot=0
+                horizontal_arrow=False
             elif key==ord("r"): # rotate cropped image 90 deg clockwize
                 key_rot=key_rot-1   # negative
             elif key==ord("l"):  # rotate cropped image 90 deg counterclockwise
                 key_rot=key_rot+1   #positive
-            elif key==ord("u"):  # rotate cropped image 100 deg
+            elif key==ord("u"):  # rotate cropped image 180 deg
                 key_rot=key_rot+2   #positive*2
             # if the 'g' or space key is pressed, break from the loop, accept the action
             elif key == ord("g") or key == ord(" ") or (key >= ord("1") and key <= ord("9"))or equ_key(key) or proceed:
@@ -887,14 +923,25 @@ def run_add(type):
         angler=math.atan2(dy, dx)  # in radians, between -pi and pi
         angle_d= int(angler * 180.0 / math.pi)  # the angle between x axis and the line, in grades
         angle = -(180+ angle_d)  # make it to be the angle between y axis and the line
+        if horizontal_arrow:    # alt + left button click take the rotation axix as horizontal
+            angle = angle + 90
         verPt=[]    # and forget the axis
+        horizontal_arrow=False
     if key_rot!=0:   # compute rotation at multiple of the direct angle
         angle=90*key_rot    # rotate image 90*n deg
-        print("Rotate:  ", angle)
 
-    crop_img = img[ x:x+w, y:y+h] # Crop from {x, y, w, h }
-    if angle!=0:
-        crop_img=rotateImage(crop_img, angle)
+    when_to_rotate = combo_outlier.get()  # set outliers area
+    if (when_to_rotate =="Rotate then crop"):    # first rtate the original image, then crop the ROI
+        print("Rotate: {} deg, around {}, {} key_rot={}".format(angle,  y+h/2, x+w/2, key_rot) )    # x and y reversed !!!!!
+        if angle!=0:
+            img=rotateImage(img, angle, True, tuple( [y+h/2, x+w/2] ))   # x and y reversed !!!!!
+        crop_img = img[ x:x+w, y:y+h] # Crop from {x, y, w, h }
+    else:                                                           # crop the ROI then rotate it
+        crop_img = img[ x:x+w, y:y+h] # Crop from {x, y, w, h }
+        if angle!=0:
+            crop_img=rotateImage(crop_img, angle, False, tuple( [x+w/2,y+h/2] ))
+
+
 
     # resize to the definite size
     if chk_resize.get() ==True:
@@ -955,17 +1002,22 @@ def run_add(type):
         if key == ord("r"):  # rotate cropped image 90 deg clockwize
             #i256=rotate_cropped(-1, i256, outfile_f)        # negative
             angle = -90   # rotate image -90 deg  # negative
-            i256 = rotateImage(i256, angle)
+            i256 = rotateImage(i256, angle, False, tuple( [0,0] ))
             cv2.imwrite(outfile_f, i256)
         elif key == ord("l"):  # rotate cropped image 90 deg counterclockwise
             #i256=rotate_cropped(1, i256, outfile_f)        # positive
             angle = 90   # rotate image 90 deg   # positive
-            i256 = rotateImage(i256, angle)
+            i256 = rotateImage(i256, angle, False, tuple( [0,0] ))
             cv2.imwrite(outfile_f, i256)
         elif key == ord("u"):  # rotate cropped image 180 deg
             #i256=rotate_cropped(2, i256, outfile_f)        # positive*2
             angle = 180  # rotate image 180 deg   # positive*2
-            i256 = rotateImage(i256, angle)
+            i256 = rotateImage(i256, angle, False, tuple( [0,0] ))
+            cv2.imwrite(outfile_f, i256)
+        elif key == ord("y"):  # Y flip cropped image
+            result = i256
+            cv2.flip(i256, 1, dst=result)   # 1 - Y axis
+            i256=result
             cv2.imwrite(outfile_f, i256)
         else:
             break
@@ -1002,7 +1054,7 @@ def run_add(type):
         run_move4()
     if type == 'l' and (key == ord("5") or key == ord("b")):  #
         run_move5()
-
+    #end run_add
 
 
 #======================================================================================
@@ -1033,11 +1085,13 @@ def run_next():
         current_file=files[current_file_index]
         entry_current.delete(0, END)
         entry_current.insert(0, current_file)
+        #current_f_pos=max(current_file.rfind("/"), current_file.rfind("\\"))
+        #entry_current.index(current_f_pos)
+        #entry_current.icursor(current_f_pos)
+        #print(current_f_pos, current_file)
         current_file_index=current_file_index+1
         if current_file_index % 5 == 0 :
             reopen_log()
-        if current_file_index % 50 == 0:
-                beep()
         inner_counter=0
         root, ext = os.path.splitext(os.path.basename(current_file))
         text = "#{}: {}".format(current_file_index, root)   # display only the filename without path and without extension
@@ -1066,7 +1120,7 @@ def run_next():
                 # width - shape[1], heigth - shape[0]
                 if chk_rot_tall.get() and img.shape[0] > img.shape[1] and img.shape[0] > int(hscreen * ver_threshold):  # lay tall image horizontally
                     print("Rotate to horizontal")   # not good when an image it too tall!
-                    img = rotateImage90(img) #, 90)      # angle = 90
+                    img = rotateImage90deg(img)       # angle = 90
 
                 bar_pos=0
                 large=""
@@ -1378,108 +1432,116 @@ def run_config():
     run_to4()
     run_to5()
 
-
-button_conf = Button(window, text="Config", bg="blue", fg="white", command=run_config)
-button_conf.grid(column=0, row=6)   # 6,1
-
-button_init = Button(window, text="Initialize", bg="orange", fg="black", command=run_loading)
-button_init.grid(column=0, row=9)   # 6,2
-
-label_1 = Label(window, anchor=E, text="Crop:")
-label_1.grid(column=0, row=11)   # widget's location
-
-button_addf = Button(window, text=" Add F  ", bg="orange", fg="blue", command=run_add_f)
-button_addf.grid(column=1, row=12)
-
-button_rotf = Button(window, text=" Rot F  ", bg="orange", fg="blue", command=run_rot_f)
-button_rotf.grid(column=3, row=12)
-
-button_addl = Button(window, text=" Add L  ", bg="orange", fg="green", command=run_add_v)
-button_addl.grid(column=1, row=14)
-
-button_rotl = Button(window, text=" Rot L  ", bg="orange", fg="green", command=run_rot_v)
-button_rotl.grid(column=3, row=14)
-
-button_rotf = Button(window, text=" Flip F Y", bg="orange", fg="blue", command=run_flip_f)
-button_rotf.grid(column=5, row=12)
-
-button_rotl = Button(window, text=" Flip L Y", bg="orange", fg="green", command=run_flip_v)
-button_rotl.grid(column=5, row=14)
-
-button_again = Button(window, text="Again", bg="orange", fg="red", command=run_again)
-button_again.grid(column=4, row=15)
-
-button_back = Button(window, text="One Back", bg="orange", fg="blue", command=run_back)
-button_back.grid(column=0, row=16)
-
-button_next = Button(window, text="  Next   ", bg="orange", fg="blue", command=run_next)
-button_next.grid(column=1, row=16)
-
-button_full= Button(window, text="Add Full", bg="yellow", fg="green", command=run_add_full)
-button_full.grid(column=3, row=16)
-
-button_adel = Button(window, text="Delete\nLast", bg="orange", fg="red", command=run_delete_last)
-button_adel.grid(column=4, row=16)
-
-button_init5 = Button(window, text="Skip", bg="orange", fg="blue", command=run_skip)
+button_init5 = Button(window, text="Skip:", bg="maroon1", fg="blue", activebackground='yellow', command=run_skip)
 button_init5.grid(column=0, row=1)
 
+button_conf = Button(window, text="Config", bg="blue", fg="white",  activebackground='red', command=run_config)
+button_conf.grid(column=0, row=6)
+
 button_init6 = Button(window, text="Move to ->", bg="orange", fg="blue", command=run_move)
-button_init6.grid(column=4, row=6)  # 0,10
+button_init6.grid(column=4, row=6)
 
 button_init7 = Button(window, text="Move to\ninit", bg="orange", fg="blue", command=init_move)
-button_init7.grid(column=2, row=6) # 4,10
+button_init7.grid(column=2, row=6)
+
+button_init = Button(window, text="Initialize", bg="HotPink1", fg="black", command=run_loading)
+button_init.grid(column=0, row=7)
+
+label_1 = Label(window, anchor=E, text="CROPPING")
+label_1.grid(column=0, row=11)   # widget's location
+
+label_11 = Label(window, anchor=E, text="Fill pattern:")
+label_11.grid(column=1, row=11)   # widget's location
+
+button_back = Button(window, text="One Back", bg="firebrick1", fg="lavender", command=run_back)
+button_back.grid(column=0, row=12)
+
+button_next = Button(window, text="  Next   ", bg="green", fg="white", activebackground='yellow', command=run_next)
+button_next.grid(column=1, row=12)
+
+button_again = Button(window, text="Again", bg="orange", fg="red", command=run_again)
+button_again.grid(column=2, row=12)
+
+button_full= Button(window, text="Add Full", bg="yellow", fg="green", command=run_add_full)
+button_full.grid(column=4, row=12)
+
+button_adel = Button(window, text="Delete\nLast", bg="orange", fg="red", command=run_delete_last)
+button_adel.grid(column=3, row=12)
+
+button_addf = Button(window, text=" Add F  ", bg="DeepPink2", fg="yellow", activebackground='red', command=run_add_f)
+button_addf.grid(column=1, row=13)
+
+button_rotf = Button(window, text=" Rot F  ", bg="orange", fg="blue", command=run_rot_f)
+button_rotf.grid(column=3, row=13)
+
+button_addl = Button(window, text=" Add L  ", bg="DeepPink2", fg="lawn green", activebackground='red', command=run_add_v)
+button_addl.grid(column=1, row=15)
+
+button_rotl = Button(window, text=" Rot L  ", bg="orange", fg="green", command=run_rot_v)
+button_rotl.grid(column=3, row=15)
+
+button_rotf = Button(window, text=" Y Flip F", bg="orange", fg="blue", command=run_flip_f)
+button_rotf.grid(column=5, row=13)
+
+button_rotl = Button(window, text=" Y Flip L", bg="orange", fg="green", command=run_flip_v)
+button_rotl.grid(column=5, row=15)
+
 
 
 # buttons to move to categories
+label_last_categ = Label(window, anchor=E, text=">")    # the last category that was selected
+label_last_categ.grid(column=0, row=19)
+
 label_categ = Label(window, anchor=E, text="Categories:")
-label_categ.grid(column=1, row=17)   # widget's location
+label_categ.grid(column=1, row=19)   # widget's location
+
+chk_copy=BooleanVar()   # if true, move file, else copy them
+chk_copy.set(True)
+chk_box_copy = Checkbutton(window, text="Move", var=chk_copy)
+chk_box_copy.grid(column=0, row=20)
 
 button_move_1 = Button(window, text="Move 1", bg="orange", fg="green", command=run_move1) # move to its folders
-button_move_1.grid(column=1, row=18)
+button_move_1.grid(column=1, row=20)
 button_init_1 = Button(window, text="Init 1", bg="orange", fg="blue", command=run_to1)  # initialize this output folder
-button_init_1.grid(column=2, row=18)
+button_init_1.grid(column=2, row=20)
 entry_ix_1 = Label(window, width=8)  # count moves to here
-entry_ix_1.grid(column=3, row=18)  # location within the window
+entry_ix_1.grid(column=3, row=20)  # location within the window
 entry_ix_1.configure(text="0")
 
 button_move_2 = Button(window, text="Move 2", bg="orange", fg="green", command=run_move2)
-button_move_2.grid(column=1, row=19)
+button_move_2.grid(column=1, row=21)
 button_init_2 = Button(window, text="Init 2", bg="orange", fg="blue", command=run_to2)
-button_init_2.grid(column=2, row=19)
+button_init_2.grid(column=2, row=21)
 entry_ix_2 = Label(window, width=8)  # count moves to here
-entry_ix_2.grid(column=3, row=19)  # location within the window
+entry_ix_2.grid(column=3, row=21)  # location within the window
 entry_ix_2.configure(text="0")
 
 button_move_3 = Button(window, text="Move 3", bg="orange", fg="green", command=run_move3)
-button_move_3.grid(column=1, row=20)
+button_move_3.grid(column=1, row=22)
 button_init_3 = Button(window, text="Init 3", bg="orange", fg="blue", command=run_to3)
-button_init_3.grid(column=2, row=20)
+button_init_3.grid(column=2, row=22)
 entry_ix_3 = Label(window, width=8)  # count moves to here
-entry_ix_3.grid(column=3, row=20)  # location within the window
+entry_ix_3.grid(column=3, row=22)  # location within the window
 entry_ix_3.configure(text="0")
 
 button_move_4 = Button(window, text="Move 4", bg="orange", fg="green", command=run_move4)
-button_move_4.grid(column=1, row=21)
+button_move_4.grid(column=1, row=23)
 button_init_4 = Button(window, text="Init 4", bg="orange", fg="blue", command=run_to4)
-button_init_4.grid(column=2, row=21)
+button_init_4.grid(column=2, row=23)
 entry_ix_4 = Label(window, width=8)  # count moves to here
-entry_ix_4.grid(column=3, row=21)  # location within the window
+entry_ix_4.grid(column=3, row=23)  # location within the window
 entry_ix_4.configure(text="0")
 
 button_move_5 = Button(window, text="Move 5", bg="orange", fg="green", command=run_move5)
-button_move_5.grid(column=1, row=22)
+button_move_5.grid(column=1, row=24)
 button_init_5 = Button(window, text="Init 5", bg="orange", fg="blue", command=run_to5)
-button_init_5.grid(column=2, row=22)
+button_init_5.grid(column=2, row=24)
 entry_ix_5 = Label(window, width=8)  # count moves to here
-entry_ix_5.grid(column=3, row=22)  # location within the window
+entry_ix_5.grid(column=3, row=24)  # location within the window
 entry_ix_5.configure(text="0")
 
 button_undo = Button(window, text="UnMove Last", bg="orange", fg="red", command=run_ctrl_z)
-button_undo.grid(column=4, row=22)
-
-
-
+button_undo.grid(column=4, row=24)
 
 
 window.mainloop()   #run the window loop
